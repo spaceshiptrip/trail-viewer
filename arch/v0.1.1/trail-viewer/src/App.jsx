@@ -20,7 +20,7 @@ function App() {
       const trackFiles = [
         'sample-trail.geojson',
         'lakeside-loop.geojson',
-        'myrun.geojson',
+        'myrun.geojson'
         // Add your own GeoJSON filenames here:
       ];
 
