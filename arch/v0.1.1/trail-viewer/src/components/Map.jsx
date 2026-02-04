@@ -64,8 +64,9 @@ export default function Map({ tracks, selectedTrack, onTrackClick }) {
     const isSelected = selectedTrack && feature.properties.id === selectedTrack.properties.id;
     
     return {
-      color: isSelected ? '#5ab887' : '#8cd2ad',
-      weight: isSelected ? 5 : 3,
+      // color: isSelected ? '#5ab887' : '#8cd2ad',
+      color: isSelected ? '#5A8BB8' : '#B85A8B',
+      weight: isSelected ? 6 : 3,
       opacity: isSelected ? 1 : 0.7,
       lineCap: 'round',
       lineJoin: 'round'
@@ -78,7 +79,7 @@ export default function Map({ tracks, selectedTrack, onTrackClick }) {
       click: () => onTrackClick(feature),
       mouseover: (e) => {
         if (!selectedTrack || selectedTrack.properties.id !== feature.properties.id) {
-          e.target.setStyle({ color: '#5ab887', weight: 4, opacity: 0.9 });
+          e.target.setStyle({ color: '#B85A8B', weight: 4, opacity: 0.9 });
         }
       },
       mouseout: (e) => {
