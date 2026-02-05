@@ -4,7 +4,9 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "Track",
+        "name": "Beaudry through Glendale Loop 9mi",
+        "description": "Mix between trail fireroads and streets back to the start. Hits the high peaks of the Verdugos.",
+        "location": "Verdugo Hills, Glendale, CA",
         "source": "gpx"
       },
       "geometry": {
