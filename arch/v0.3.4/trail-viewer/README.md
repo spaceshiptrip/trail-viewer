@@ -4,27 +4,41 @@ A beautiful, interactive web application for visualizing and exploring hiking tr
 
 ## Features
 
-- 🗺️ **Interactive Map**: View all your trails on an OpenStreetMap-based interface
-- 📊 **Elevation Profiles**: Detailed elevation graphs for each track
-- 🔍 **Search & Filter**: Quickly find trails by name, location, or description
-- 📈 **Trail Stats**: Automatic calculation of distance and elevation gain
-- 🌤️ **Weather Integration**: Real-time weather conditions and 5-day forecast for each trail
-- 📱 **Responsive Design**: Works beautifully on desktop, tablet, and mobile
-- 🎨 **Beautiful UI**: Custom dark theme with smooth animations
+* 🗺️ **Interactive Map**: View all your trails on an OpenStreetMap-based interface
+* 📊 **Elevation Profiles**: Detailed elevation graphs for each track
+* 🔍 **Search & Filter**: Quickly find trails by name, location, or description
+* 📈 **Trail Stats**: Automatic calculation of distance and elevation gain
+* 🌤️ **Weather Integration**: Real-time weather conditions and 5-day forecast for each trail
+* 📱 **Responsive Design**: Works beautifully on desktop, tablet, and mobile
+* 🎨 **Beautiful UI**: Custom dark theme with smooth animations
 
 ## Quick Start
 
-### 1. Install Dependencies
+### 1. Node.js Environment (Recommended)
+
+This project uses [Volta](https://www.google.com/search?q=https://volta.sh/) to manage Node.js versions. To ensure consistency, it is recommended to install Volta and pin the project to the specified version.
+
+```bash
+# Install Volta (macOS/Linux)
+curl https://get.volta.sh | bash
+
+# Pin the version (already configured in package.json)
+volta pin node@22.22.0
+
+```
+
+### 2. Install Dependencies
 
 ```bash
 npm install
+
 ```
 
-### 2. Add Your GeoJSON Files
+### 3. Add Your GeoJSON Files
 
 Place your GeoJSON trail files in the `public/tracks/` directory. See the example file for the correct format.
 
-### 3. Update Track List
+### 4. Update Track List
 
 Edit `src/App.jsx` and add your filenames to the `trackFiles` array:
 
@@ -34,12 +48,14 @@ const trackFiles = [
   'your-trail-1.geojson',
   'your-trail-2.geojson',
 ];
+
 ```
 
-### 4. Run Development Server
+### 5. Run Development Server
 
 ```bash
 npm run dev
+
 ```
 
 Visit `http://localhost:5173` to see your trail viewer!
@@ -64,13 +80,15 @@ Your GeoJSON files should follow this structure:
     ]
   }
 }
+
 ```
 
 **Important Notes:**
-- Coordinates are in `[longitude, latitude, elevation]` format
-- Elevation is optional but enables elevation profile charts
-- Both `LineString` and `MultiLineString` geometries are supported
-- `FeatureCollection` format is also supported
+
+* Coordinates are in `[longitude, latitude, elevation]` format
+* Elevation is optional but enables elevation profile charts
+* Both `LineString` and `MultiLineString` geometries are supported
+* `FeatureCollection` format is also supported
 
 ## Deploying to GitHub Pages
 
@@ -83,12 +101,14 @@ export default defineConfig({
   plugins: [react()],
   base: '/your-repo-name/',
 })
+
 ```
 
 ### 2. Build for Production
 
 ```bash
 npm run build
+
 ```
 
 ### 3. Deploy Options
@@ -103,6 +123,7 @@ npm install -D gh-pages
 
 # Deploy:
 npm run deploy
+
 ```
 
 **Option B: Manual deployment**
@@ -150,6 +171,7 @@ jobs:
     steps:
       - uses: actions/deploy-pages@v4
         id: deployment
+
 ```
 
 ## Converting GPS Data to GeoJSON
@@ -157,8 +179,9 @@ jobs:
 If you have GPX files from your GPS device, convert them to GeoJSON:
 
 ### Using Online Tools
-- [geojson.io](https://geojson.io) - Upload GPX and download as GeoJSON
-- [MyGeodata Converter](https://mygeodata.cloud/converter/)
+
+* [geojson.io](https://geojson.io) - Upload GPX and download as GeoJSON
+* [MyGeodata Converter](https://mygeodata.cloud/converter/)
 
 ### Using Command Line (gpsbabel)
 
@@ -169,6 +192,7 @@ If you have GPX files from your GPS device, convert them to GeoJSON:
 
 # Convert GPX to GeoJSON
 gpsbabel -i gpx -f input.gpx -o geojson -F output.geojson
+
 ```
 
 ### Using Python
@@ -204,6 +228,7 @@ with open('track.gpx', 'r') as gpx_file:
     
     with open('track.geojson', 'w') as f:
         json.dump(geojson, f, indent=2)
+
 ```
 
 ## Customization
@@ -219,6 +244,7 @@ Edit `src/index.css` to customize the color scheme:
   --accent-primary: #5ab887;    /* Primary accent color */
   --text-primary: #f0f9f4;      /* Main text */
 }
+
 ```
 
 ### Map Style
@@ -235,6 +261,7 @@ Change the map tiles in `src/components/Map.jsx`:
 <TileLayer
   url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
 />
+
 ```
 
 ### Fonts
@@ -246,25 +273,26 @@ fontFamily: {
   display: ['"Your Display Font"', 'sans-serif'],
   body: ['"Your Body Font"', 'sans-serif'],
 }
+
 ```
 
 ## Tech Stack
 
-- **React 18** - UI framework
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Styling
-- **Leaflet** - Interactive maps
-- **react-leaflet** - React bindings for Leaflet
-- **Recharts** - Elevation profile charts
-- **Lucide React** - Icon library
-- **Open-Meteo API** - Weather data (free, no API key required)
+* **React 18** - UI framework
+* **Vite** - Build tool and dev server
+* **Tailwind CSS** - Styling
+* **Leaflet** - Interactive maps
+* **react-leaflet** - React bindings for Leaflet
+* **Recharts** - Elevation profile charts
+* **Lucide React** - Icon library
+* **Open-Meteo API** - Weather data (free, no API key required)
 
 ## Browser Support
 
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
+* Chrome/Edge (latest)
+* Firefox (latest)
+* Safari (latest)
+* Mobile browsers (iOS Safari, Chrome Mobile)
 
 ## License
 
@@ -276,6 +304,6 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## Acknowledgments
 
-- Map data from [OpenStreetMap](https://www.openstreetmap.org)
-- Weather data from [Open-Meteo](https://open-meteo.com)
-- Icons from [Lucide](https://lucide.dev)
+* Map data from [OpenStreetMap](https://www.openstreetmap.org)
+* Weather data from [Open-Meteo](https://open-meteo.com)
+* Icons from [Lucide](https://lucide.dev)

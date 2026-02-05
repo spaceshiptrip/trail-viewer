@@ -9,12 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tmcw/togeojson": "^7.1.2",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.263.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "leaflet": "^1.9.4",
     "react-leaflet": "^4.2.1",
     "recharts": "^2.12.7",
-    "lucide-react": "^0.263.1"
+    "xmldom": "^0.6.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
@@ -24,5 +26,8 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
     "vite": "^5.3.1"
+  },
+  "volta": {
+    "node": "22.x"
   }
 }

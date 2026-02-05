@@ -38,9 +38,7 @@ function App() {
       // This will load all GeoJSON files from the public/tracks directory
       // You'll need to manually list your files here or create an index
       const trackFiles = [
-        'sample-trail.geojson',
-        'lakeside-loop.geojson',
-        'BeaudryGlendaleLoop9.geojson',
+        'Beaudry2VerdugoPeak_11.geojson',
         // Add your own GeoJSON filenames here:
       ];
 
