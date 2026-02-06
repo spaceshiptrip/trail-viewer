@@ -102,6 +102,15 @@ function App() {
         elevationGain
       };
 
+      // DEBUG console output stats
+      const elevationsFt = coords.map(c => c[2] * 3.28084);
+      console.log(filename, {
+        start: elevationsFt[0],
+        max: Math.max(...elevationsFt),
+        min: Math.min(...elevationsFt),
+        gain: elevationGain
+      });
+
       return feature;
     } catch (error) {
       console.error('Error processing track:', filename, error);
