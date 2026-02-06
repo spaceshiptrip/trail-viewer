@@ -65,8 +65,11 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
   
   return (
     <div className="w-full lg:w-96 h-full bg-[var(--bg-secondary)] border-l border-[var(--border-color)] overflow-y-auto flex flex-col">
+      {/* Mobile Drag Handle */}
+      <div className="w-12 h-1.5 bg-[var(--border-color)] rounded-full mx-auto my-3 lg:hidden shrink-0" />
+
       {/* Header */}
-      <div className="p-6 border-b border-[var(--border-color)] sticky top-0 bg-[var(--bg-secondary)] z-10">
+      <div className="p-6 border-b border-[var(--border-color)] lg:sticky lg:top-0 bg-[var(--bg-secondary)] z-10">
         <div className="flex justify-between items-start mb-4">
           <h2 className="text-2xl font-display font-bold text-[var(--accent-primary)]">
             {track.properties.name || 'Unnamed Track'}

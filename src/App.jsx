@@ -9,11 +9,15 @@ function App() {
   const [tracks, setTracks] = useState([]);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showMileMarkers, setShowMileMarkers] = useState(true);
   const [showStartFinish, setShowStartFinish] = useState(true);
   const [cursorPosition, setCursorPosition] = useState(null);
   const [graphHoverIndex, setGraphHoverIndex] = useState(null);
   const [drawMode, setDrawMode] = useState(false);
+  const [isSheetMinimized, setIsSheetMinimized] = useState(false);
+  // Near your other useState hooks
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState(() => {
     // Get theme from localStorage or default to dark
     return localStorage.getItem('theme') || 'dark';
@@ -105,6 +109,7 @@ function App() {
 
   const handleTrackSelect = (track) => {
     setSelectedTrack(track);
+    setIsMenuOpen(false); 
   };
 
   const handleCloseSidebar = () => {
@@ -171,29 +176,34 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col lg:flex-row overflow-hidden bg-[var(--bg-primary)]">
-      {/* Track List - Left Panel */}
-      <div className="w-full lg:w-96 h-48 lg:h-full border-b lg:border-b-0 lg:border-r border-[var(--border-color)] relative">
-        <TrackList
-          tracks={tracks}
-          selectedTrack={selectedTrack}
-          onTrackSelect={handleTrackSelect}
-          themeToggle={<ThemeToggle theme={theme} onToggle={toggleTheme} />}
-        />
-        
-        {/* Draw Trail Button - Floating at bottom of track list */}
-        <button
-          onClick={() => setDrawMode(true)}
-          className="absolute bottom-4 left-4 right-4 px-4 py-3 bg-[var(--accent-primary)] text-black rounded-lg font-display font-semibold hover:brightness-110 transition-all shadow-lg flex items-center justify-center gap-2 z-10"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-          Draw New Trail
-        </button>
+      {/* Hamburger Button */}
+      <button 
+        onClick={() => setIsMenuOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-[1001] p-3 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--accent-primary)] shadow-lg"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+      </button>
+
+      {/* Track List - Now an overlay on mobile */}
+      <div className={`
+        fixed inset-y-0 left-0 z-[1002] w-80 transform transition-transform duration-300 ease-in-out
+        ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:relative lg:translate-x-0 lg:w-96 lg:h-full border-r border-[var(--border-color)]
+      `}>
+         {/* Mobile Close Button */}
+         <button onClick={() => setIsMenuOpen(false)} className="lg:hidden absolute top-4 right-4 z-20 text-[var(--text-secondary)]">
+           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+         </button>
+         <TrackList
+            tracks={tracks}
+            selectedTrack={selectedTrack}
+            onTrackSelect={handleTrackSelect}
+            themeToggle={<ThemeToggle theme={theme} onToggle={toggleTheme} />}
+          />
       </div>
 
-      {/* Map - Center */}
-      <div className="flex-1 relative">
+      {/* Map - Full screen on mobile */}
+      <div className="flex-1 relative h-full">
         <Map
           tracks={tracks}
           selectedTrack={selectedTrack}
@@ -203,98 +213,64 @@ function App() {
           cursorPosition={cursorPosition}
           cursorIndex={graphHoverIndex}
           onMapHover={handleMapHover}
-          sidebarOpen={!!selectedTrack}
           drawMode={drawMode}
           onSaveDrawnTrail={handleSaveDrawnTrail}
           onCloseDrawMode={() => setDrawMode(false)}
           theme={theme}
-        />
-        
-        {/* Map Controls - Floating toggle buttons */}
-        {selectedTrack && (
-          <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
-            <button
-              onClick={() => setShowMileMarkers(!showMileMarkers)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                showMileMarkers 
-                  ? 'bg-[var(--accent-primary)] text-black' 
-                  : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)]'
-              } hover:shadow-lg`}
-            >
-              {showMileMarkers ? '✓ Mile Markers' : 'Mile Markers'}
-            </button>
-            <button
-              onClick={() => setShowStartFinish(!showStartFinish)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                showStartFinish 
-                  ? 'bg-[var(--accent-primary)] text-black' 
-                  : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)]'
-              } hover:shadow-lg`}
-            >
-              {showStartFinish ? '✓ Start/Finish' : 'Start/Finish'}
-            </button>
-          </div>
-        )}
-        
-        {/* Instructions Overlay - Shows when no tracks loaded */}
-        {tracks.length === 0 && (
-          <div className="absolute inset-0 bg-[var(--bg-primary)]/95 flex items-center justify-center p-8">
-            <div className="max-w-2xl text-center">
-              <h2 className="text-3xl font-display font-bold text-[var(--accent-primary)] mb-6">
-                Welcome to Trail Explorer
-              </h2>
-              <div className="space-y-4 text-[var(--text-secondary)] text-left">
-                <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6">
-                  <h3 className="text-xl font-display font-semibold text-[var(--text-primary)] mb-3">
-                    Getting Started
-                  </h3>
-                  <ol className="space-y-3 list-decimal list-inside">
-                    <li>Add your GeoJSON files to the <code className="bg-[var(--bg-tertiary)] px-2 py-1 rounded text-[var(--accent-primary)] font-mono text-sm">/public/tracks/</code> directory</li>
-                    <li>Update the <code className="bg-[var(--bg-tertiary)] px-2 py-1 rounded text-[var(--accent-primary)] font-mono text-sm">trackFiles</code> array in <code className="bg-[var(--bg-tertiary)] px-2 py-1 rounded text-[var(--accent-primary)] font-mono text-sm">App.jsx</code> with your filenames</li>
-                    <li>Your tracks will appear on the map with distance and elevation data</li>
-                    <li>Click any track to see detailed stats, elevation profile, and weather forecast</li>
-                  </ol>
-                </div>
-                
-                <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6">
-                  <h3 className="text-xl font-display font-semibold text-[var(--text-primary)] mb-3">
-                    GeoJSON Format
-                  </h3>
-                  <p className="mb-2">Your GeoJSON files should contain:</p>
-                  <ul className="space-y-2 list-disc list-inside">
-                    <li>LineString or MultiLineString geometry</li>
-                    <li>Coordinates with elevation data (optional)</li>
-                    <li>Properties: name, description, location (optional)</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Sidebar - Right Panel (slides in when track selected) */}
-      <div className={`
-        fixed lg:relative top-0 right-0 h-full
-        transform transition-transform duration-300 ease-in-out
-        ${selectedTrack ? 'translate-x-0' : 'translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden'}
-        z-50 lg:z-auto
-      `}>
-        <Sidebar 
-          track={selectedTrack} 
-          onClose={handleCloseSidebar}
-          onCursorPosition={handleGraphCursor}
-          mapHoverIndex={graphHoverIndex}
+          sidebarOpen={!!selectedTrack}
+          isSidebarCollapsed={isSidebarCollapsed}
         />
       </div>
 
-      {/* Mobile overlay when sidebar is open */}
+      {/* Details - Sliding Bottom Sheet on Mobile / Collapsible Sidebar on Desktop */}
       {selectedTrack && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={handleCloseSidebar}
-        />
+        <div className={`
+          fixed bottom-0 left-0 w-full z-[1003] transform transition-all duration-500 ease-in-out shadow-2xl bg-[var(--bg-secondary)]
+          ${isSheetMinimized ? 'translate-y-[calc(100%-60px)]' : 'translate-y-0'}
+          h-[70vh] rounded-t-3xl
+          lg:relative lg:translate-y-0 lg:h-full lg:w-96 lg:rounded-none lg:border-l border-[var(--border-color)]
+          ${isSidebarCollapsed ? 'lg:w-0 lg:opacity-0' : 'lg:w-96 lg:opacity-100'}
+        `}>
+          {/* Desktop Collapse Toggle Button (Visible only on Desktop when track selected) */}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="hidden lg:flex absolute -left-10 top-4 z-50 p-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-l-lg text-[var(--accent-primary)] hover:brightness-110 shadow-md"
+            title={isSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
+          >
+            <svg className={`w-5 h-5 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          {/* Mobile Toggle Button (Visual handle) */}
+          <button 
+            onClick={() => setIsSheetMinimized(!isSheetMinimized)}
+            className="lg:hidden absolute top-2 left-1/2 -translate-x-1/2 w-20 h-8 z-50 flex items-center justify-center"
+          >
+            <div className="w-12 h-1.5 bg-[var(--border-color)] rounded-full opacity-50" />
+          </button>
+
+          <Sidebar 
+            track={selectedTrack} 
+            onClose={handleCloseSidebar}
+            onCursorPosition={handleGraphCursor}
+            mapHoverIndex={graphHoverIndex}
+          />
+        </div>
       )}
+
+{/* Permanent Desktop Toggle (Visible when sidebar is collapsed to bring it back) */}
+{selectedTrack && isSidebarCollapsed && (
+  <button
+    onClick={() => setIsSidebarCollapsed(false)}
+    className="hidden lg:flex fixed right-0 top-4 z-50 p-2 bg-[var(--bg-secondary)] border border-r-0 border-[var(--border-color)] rounded-l-lg text-[var(--accent-primary)] shadow-md"
+  >
+    <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  </button>
+)}
+
     </div>
   );
 }

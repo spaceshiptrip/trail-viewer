@@ -27,6 +27,13 @@
     --border-color: #8cd2ad;
   }
 
+  html, body, #root {
+    height: 100%;
+    /* Fix for mobile browser bars */
+    height: -webkit-fill-available; 
+    overflow: hidden;
+  }
+
   body {
     @apply bg-[var(--bg-primary)] text-[var(--text-primary)] font-body;
     overflow-x: hidden;
@@ -69,6 +76,8 @@
 
 /* Leaflet overrides for theme support */
 .leaflet-container {
+  width: 100%;
+  height: 100%;
   font-family: 'DM Sans', sans-serif;
   transition: filter 0.3s ease;
 }
