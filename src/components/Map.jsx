@@ -96,7 +96,7 @@ function CursorMarker({ position, track, index }) {
       ? track.geometry.coordinates
       : track.geometry.coordinates[0];
 
-  const elevation = coords[index]?.[2] || 0;
+  const elevation = (Number(coords[index]?.[2]) || 0) * 3.28084; // meters -> feet
 
   // calculate distance up to this point
   let distance = 0;

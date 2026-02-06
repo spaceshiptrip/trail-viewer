@@ -28,25 +28,40 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
 
 const toRad = (degrees) => degrees * (Math.PI / 180);
 
-// Calculate elevation gain from coordinates with elevation data
 export const calculateElevationGain = (coordinates) => {
-  if (!coordinates || coordinates.length < 2 || !coordinates[0][2]) return 0;
-  
-  let gain = 0;
-  for (let i = 1; i < coordinates.length; i++) {
-    const diff = (coordinates[i][2] - coordinates[i - 1][2]) * 3.28084; // Convert meters to feet
-    if (diff > 0) gain += diff;
+  if (!coordinates || coordinates.length < 2) return 0;
+
+  const zs = coordinates
+    .map(c => Number(c?.[2]))
+    .filter(z => Number.isFinite(z));
+
+  if (zs.length < 2) return 0;
+
+  const start = zs[0];
+  const max = Math.max(...zs);
+  const floor = max - start; // meters
+
+  const NOISE_FT = 5;
+  const M_TO_FT = 3.28084;
+
+  let gainMeters = 0;
+  for (let i = 1; i < zs.length; i++) {
+    const diff = zs[i] - zs[i - 1]; // meters
+    if (diff * M_TO_FT > NOISE_FT) gainMeters += diff;
   }
-  return gain;
+
+  const outMeters = Math.max(gainMeters, floor);
+  return outMeters * M_TO_FT; // ✅ return FEET
 };
 
-// Get elevation profile data for chart
+
 export const getElevationProfile = (coordinates) => {
-  if (!coordinates || coordinates.length < 2 || !coordinates[0][2]) return [];
-  
+  if (!coordinates || coordinates.length < 2) return [];
+  if (!coordinates.some(c => Number.isFinite(Number(c?.[2])))) return [];
+
   let distance = 0;
   const profile = [];
-  
+
   for (let i = 0; i < coordinates.length; i++) {
     if (i > 0) {
       distance += haversineDistance(
@@ -54,15 +69,16 @@ export const getElevationProfile = (coordinates) => {
         coordinates[i][1], coordinates[i][0]
       );
     }
-    
+
     profile.push({
       distance: distance,
-      elevation: coordinates[i][2] * 3.28084 // Convert meters to feet
+      elevation: Number(coordinates[i][2]) * 3.28084 // ✅ meters -> feet
     });
   }
-  
+
   return profile;
 };
+
 
 // Get center point of track
 export const getTrackCenter = (coordinates) => {
