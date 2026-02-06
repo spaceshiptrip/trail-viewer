@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { Search, Mountain, TrendingUp } from 'lucide-react';
+import { Search, Mountain, TrendingUp, Download } from 'lucide-react';
+
+
+
+function gpxUrlForTrack(track) {
+  const name = track?.properties?.name || '';
+  return `${import.meta.env.BASE_URL}tracks/gpx/${encodeURIComponent(name)}.gpx`;
+}
 
 export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeToggle }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,9 +81,12 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
               }`}
               style={{ animationDelay: `${idx * 0.05}s` }}
             >
-              <h3 className="font-display font-semibold text-lg mb-2 text-[var(--text-primary)]">
-                {track.properties.name || `Track ${idx + 1}`}
-              </h3>
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="font-display font-semibold text-lg mb-2 text-[var(--text-primary)]">
+                  {track.properties.name || `Track ${idx + 1}`}
+                </h3>
+
+              </div>
               
               {track.properties.location && (
                 <p className="text-[var(--text-secondary)] text-sm mb-3">
@@ -84,22 +94,38 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
                 </p>
               )}
               
-              <div className="flex gap-4 text-sm">
-                <div className="flex items-center gap-1.5 text-[var(--accent-primary)]">
-                  <Mountain className="w-4 h-4" />
-                  <span className="font-mono font-medium">
-                    {track.properties.distance?.toFixed(2) || '0'} mi
-                  </span>
-                </div>
-                
-                {track.properties.elevationGain > 0 && (
+
+              <div className="flex items-center justify-between text-sm">
+                {/* left side stats */}
+                <div className="flex gap-4">
                   <div className="flex items-center gap-1.5 text-[var(--accent-primary)]">
-                    <TrendingUp className="w-4 h-4" />
+                    <Mountain className="w-4 h-4" />
                     <span className="font-mono font-medium">
-                      {track.properties.elevationGain?.toFixed(0)} ft
+                      {track.properties.distance?.toFixed(2) || '0'} mi
                     </span>
                   </div>
-                )}
+
+                  {track.properties.elevationGain > 0 && (
+                    <div className="flex items-center gap-1.5 text-[var(--accent-primary)]">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="font-mono font-medium">
+                        {track.properties.elevationGain?.toFixed(0)} ft
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* right side download icon */}
+                <a
+                  href={gpxUrlForTrack(track)}
+                  download
+                  title="Download GPX"
+                  aria-label="Download GPX"
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1.5 rounded-md hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                </a>
               </div>
               
               {track.properties.description && (
