@@ -299,7 +299,7 @@ export default function Map({
       return () => {
         map.off('mousemove', handleMouseMove);
       };
-    }, [map, selectedTrack]);
+    }, [map, selectedTrack, onMapHover]);
     
     return null;
   };
@@ -327,19 +327,50 @@ export default function Map({
   const bounds = getAllBounds();
   const center = bounds ? bounds.getCenter() : [39.8283, -98.5795]; // Default to center of US
   
-  // Style function for GeoJSON features
+
+  // properties for the selected line
+  const SELECTED_TRACK_LINE_COLOR = '#5ab887';
+  const SELECTED_TRACK_OUTLINE_COLOR = '#ffffff';
+
+  const SELECTED_LINE_WEIGHT = 5;
+  const SELECTED_OUTLINE_WEIGHT = 8;
+
+
+  const getSelectedOutlineStyle = () => ({
+    color: SELECTED_TRACK_OUTLINE_COLOR,
+    weight: SELECTED_OUTLINE_WEIGHT,
+    opacity: 1,
+    lineCap: 'round',
+    lineJoin: 'round',
+    className: 'selected-track-outline'
+  });
+
+  const getSelectedCoreStyle = () => ({
+    color: SELECTED_TRACK_LINE_COLOR,
+    weight: SELECTED_LINE_WEIGHT,
+    opacity: 1,
+    lineCap: 'round',
+    lineJoin: 'round',
+    className: 'selected-track-core'
+  });
+
+  // Style for non-selected tracks
   const getTrackStyle = (feature) => {
-    const isSelected = selectedTrack && feature.properties.id === selectedTrack.properties.id;
-    
+    const isSelected =
+      selectedTrack && feature.properties.id === selectedTrack.properties.id;
+
+    // For the selected track, we won't use this style (we render it separately)
+    if (isSelected) return { opacity: 0, weight: 0 };
+
     return {
-      color: isSelected ? '#5ab887' : '#8cd2ad',
-      weight: isSelected ? 5 : 3,
-      opacity: isSelected ? 1 : 0.7,
+      color: '#8cd2ad',
+      weight: 3,
+      opacity: 0.7,
       lineCap: 'round',
       lineJoin: 'round'
     };
   };
-  
+
   // Handle track interactions
   const onEachFeature = (feature, layer) => {
     layer.on({
@@ -379,14 +410,37 @@ export default function Map({
           className={theme === 'dark' ? 'brightness-115 contrast-105' : ''}
         />
         
-        {tracks.map((track) => (
-          <GeoJSON
-            key={track.properties.id}
-            data={track}
-            style={getTrackStyle}
-            onEachFeature={onEachFeature}
-          />
-        ))}
+
+        {/* Non-selected tracks */}
+        {tracks
+          .filter(t => !selectedTrack || t.properties.id !== selectedTrack.properties.id)
+          .map((track) => (
+            <GeoJSON
+              key={track.properties.id}
+              data={track}
+              style={getTrackStyle}
+              onEachFeature={onEachFeature}
+            />
+          ))}
+
+        {/* Selected track: white outline + green core (drawn on top) */}
+        {selectedTrack && (
+          <>
+            <GeoJSON
+              key={`selected-outline-${selectedTrack.properties.id}`}
+              data={selectedTrack}
+              style={getSelectedOutlineStyle}
+              // Keep interactions (optional): clicking the selected track should still “select” it
+              onEachFeature={onEachFeature}
+            />
+            <GeoJSON
+              key={`selected-core-${selectedTrack.properties.id}`}
+              data={selectedTrack}
+              style={getSelectedCoreStyle}
+              onEachFeature={onEachFeature}
+            />
+          </>
+        )}
         
         
         {/* Mile Markers (numbered) */}
