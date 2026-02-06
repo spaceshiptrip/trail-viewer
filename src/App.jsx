@@ -45,7 +45,7 @@ function App() {
         'Beaudry2VerdugoPeak_11.geojson',
         'Sunshine2VerdugoPeak_12.geojson',
         'Palm2Lukens_14.geojson',
-
+        'Mount_Wilson_via_Sierra_Madre_Jones_Peak_and_Bailey_Canyon_Loop.geojson',
         // Add your own GeoJSON filenames here:
       ];
 

@@ -1,8 +1,9 @@
 {
   "type": "Feature",
   "properties": {
-    "name": "Beaudry2VerdugoPeak_11",
-    "description": ""
+    "name": "Beaudry to Verdugo Peak 11",
+    "description": "",
+    "location": "Verdugo Mtn, Glendale, CA"
   },
   "geometry": {
     "type": "LineString",
