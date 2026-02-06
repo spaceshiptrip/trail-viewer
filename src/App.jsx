@@ -44,6 +44,8 @@ function App() {
       const trackFiles = [
         'Beaudry2VerdugoPeak_11.geojson',
         'Sunshine2VerdugoPeak_12.geojson',
+        'Palm2Lukens_14.geojson',
+
         // Add your own GeoJSON filenames here:
       ];
 
