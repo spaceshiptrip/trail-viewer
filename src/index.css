@@ -82,6 +82,17 @@
   transition: filter 0.3s ease;
 }
 
+
+/* Selected track styling: make it pop like POI */
+.leaflet-interactive.selected-track-core {
+  filter: drop-shadow(0 3px 10px rgba(0,0,0,0.45));
+}
+
+.leaflet-interactive.selected-track-outline {
+  filter: drop-shadow(0 3px 10px rgba(0,0,0,0.45));
+}
+
+
 [data-theme="light"] .leaflet-container {
   background: #f5f5f5;
 }
