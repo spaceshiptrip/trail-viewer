@@ -37,23 +37,96 @@ const finishIcon = new L.Icon({
   popupAnchor: [0, -32]
 });
 
+
+// Mile marker icon with number (white circle + green number)
+const mileMarkerIcon = (n) =>
+  L.divIcon({
+    className: '', // important: prevent default leaflet styles
+    html: `
+      <div style="
+        width: 26px;
+        height: 26px;
+        border-radius: 9999px;
+        background: #ffffff;
+        border: 2px solid #5ab887;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        font-weight: 800;
+        font-size: 12px;
+        color: #1e6f4c;
+        line-height: 1;
+      ">
+        ${n}
+      </div>
+    `,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  });
+
+
+// --- Shared math helpers (must be top-level so CursorMarker can use them) ---
+const toRad = (degrees) => degrees * (Math.PI / 180);
+
+// Haversine distance formula (miles)
+const haversineDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 3959; // Earth's radius in miles
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 // Component for cursor position marker
-function CursorMarker({ position }) {
-  if (!position) return null;
-  
+function CursorMarker({ position, track, index }) {
+  if (!position || !track || index == null) return null;
+
+  const coords =
+    track.geometry.type === 'LineString'
+      ? track.geometry.coordinates
+      : track.geometry.coordinates[0];
+
+  const elevation = coords[index]?.[2] || 0;
+
+  // calculate distance up to this point
+  let distance = 0;
+  for (let i = 1; i <= index; i++) {
+    if (!coords[i] || !coords[i - 1]) break;
+    distance += haversineDistance(
+      coords[i - 1][1], coords[i - 1][0],
+      coords[i][1], coords[i][0]
+    );
+  }
+
   return (
     <CircleMarker
       center={position}
-      radius={8}
+      radius={9}
+      className="drop-shadow-md"
       pathOptions={{
-        color: '#5ab887',
+        color: '#ffffff',
         fillColor: '#5ab887',
-        fillOpacity: 0.8,
+        fillOpacity: 1,
         weight: 3
       }}
     >
       <Popup>
-        <div className="font-display font-semibold">Current Position</div>
+        <div className="font-display font-semibold space-y-1">
+          <div>Mile {distance.toFixed(2)}</div>
+          <div className="text-sm text-[var(--text-secondary)]">
+            {Math.round(elevation)} ft
+          </div>
+        </div>
       </Popup>
     </CircleMarker>
   );
@@ -104,7 +177,7 @@ function FitBounds({ bounds, selectedTrack, sidebarOpen }) {
   return null;
 }
 
-export default function Map({ tracks, selectedTrack, onTrackClick, showMileMarkers, showStartFinish, cursorPosition, onMapHover, sidebarOpen, drawMode, onSaveDrawnTrail, onCloseDrawMode, theme }) {
+export default function Map({ tracks, selectedTrack, onTrackClick, showMileMarkers, showStartFinish, cursorPosition, cursorIndex, onMapHover, sidebarOpen, drawMode, onSaveDrawnTrail, onCloseDrawMode, theme }) {
   const mapRef = useRef();
   
   // Calculate mile markers for selected track
@@ -151,22 +224,6 @@ export default function Map({ tracks, selectedTrack, onTrackClick, showMileMarke
     
     return markers;
   };
-  
-  // Haversine distance formula
-  const haversineDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 3959; // Earth's radius in miles
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-  
-  const toRad = (degrees) => degrees * (Math.PI / 180);
   
   const mileMarkers = selectedTrack ? getMileMarkers(selectedTrack) : [];
   
@@ -315,61 +372,64 @@ export default function Map({ tracks, selectedTrack, onTrackClick, showMileMarke
           />
         ))}
         
-        {/* Mile Markers */}
-        {mileMarkers.map((marker, idx) => (
-          <CircleMarker
-            key={`mile-${idx}`}
-            center={marker.position}
-            radius={6}
-            pathOptions={{
-              color: '#ffffff',
-              fillColor: '#5ab887',
-              fillOpacity: 1,
-              weight: 2
-            }}
-          >
-            <Popup>
-              <div className="font-display font-semibold">
-                {marker.distance === 0 ? 'Start' : `Mile ${marker.distance}`}
-              </div>
-            </Popup>
-          </CircleMarker>
-        ))}
         
-        {/* Start Marker */}
-        {start && (
-          <Marker position={start} icon={startIcon}>
-            <Popup>
-              <div className="font-display font-semibold text-green-600">Trail Start</div>
-            </Popup>
-          </Marker>
-        )}
-        
-        {/* Finish Marker */}
-        {finish && (
-          <Marker position={finish} icon={finishIcon}>
-            <Popup>
-              <div className="font-display font-semibold text-red-600">Trail Finish</div>
-            </Popup>
-          </Marker>
-        )}
-        
-        {/* Cursor Position Marker */}
-        <CursorMarker position={cursorPosition} />
-        
-        {/* Map Event Handler */}
-        <MapEventHandler />
-        
-        {bounds && <FitBounds bounds={bounds} selectedTrack={selectedTrack} sidebarOpen={sidebarOpen} />}
-        
-        {/* Draw Trail Mode */}
-        {drawMode && (
-          <DrawTrailMode
-            onSave={onSaveDrawnTrail}
-            onClose={onCloseDrawMode}
+        {/* Mile Markers (numbered) */}
+        {mileMarkers
+          .filter(m => m.distance > 0) // skip 0; you already have a Start marker
+          .map((marker) => (
+
+            <Marker
+              key={`mile-${marker.distance}`}
+              position={marker.position}
+              icon={mileMarkerIcon(marker.distance)}
+              keyboard={false}
+            >
+              <Popup>
+                <div className="font-display font-semibold">
+                  Mile {marker.distance}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+
+          {/* Start Marker */}
+          {start && (
+            <Marker position={start} icon={startIcon}>
+              <Popup>
+                <div className="font-display font-semibold text-green-600">Trail Start</div>
+              </Popup>
+            </Marker>
+          )}
+          
+          {/* Finish Marker */}
+          {finish && (
+            <Marker position={finish} icon={finishIcon}>
+              <Popup>
+                <div className="font-display font-semibold text-red-600">Trail Finish</div>
+              </Popup>
+            </Marker>
+          )}
+          
+          {/* Cursor Position Marker */}
+          <CursorMarker
+            position={cursorPosition}
+            track={selectedTrack}
+            index={cursorIndex}
           />
-        )}
-      </MapContainer>
-    </div>
-  );
-}
+          
+          {/* Map Event Handler */}
+          <MapEventHandler />
+          
+          {bounds && <FitBounds bounds={bounds} selectedTrack={selectedTrack} sidebarOpen={sidebarOpen} />}
+          
+          {/* Draw Trail Mode */}
+          {drawMode && (
+            <DrawTrailMode
+              onSave={onSaveDrawnTrail}
+              onClose={onCloseDrawMode}
+            />
+          )}
+        </MapContainer>
+      </div>
+    );
+  }

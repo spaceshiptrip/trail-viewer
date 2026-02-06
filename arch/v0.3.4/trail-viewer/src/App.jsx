@@ -198,6 +198,7 @@ function App() {
           showMileMarkers={showMileMarkers}
           showStartFinish={showStartFinish}
           cursorPosition={cursorPosition}
+          cursorIndex={graphHoverIndex}
           onMapHover={handleMapHover}
           sidebarOpen={!!selectedTrack}
           drawMode={drawMode}
