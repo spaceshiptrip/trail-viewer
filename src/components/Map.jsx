@@ -133,7 +133,7 @@ function CursorMarker({ position, track, index }) {
 }
 
 // Component to fit map bounds to all tracks or selected track
-function FitBounds({ bounds, selectedTrack, sidebarOpen }) {
+function FitBounds({ bounds, selectedTrack, sidebarOpen, isSidebarCollapsed }) {
   const map = useMap();
   const [hasInitialized, setHasInitialized] = useState(false);
   const [lastTrackId, setLastTrackId] = useState(null);
@@ -156,13 +156,14 @@ function FitBounds({ bounds, selectedTrack, sidebarOpen }) {
       
       const trackBounds = L.latLngBounds(coords);
       
-      // Account for sidebar width when centering
-      const paddingLeft = sidebarOpen ? 450 : 50; // Sidebar is ~384px (96 * 4) wide
-      const paddingRight = sidebarOpen ? 50 : 50;
+      // LOGIC: Responsive padding for Sidebar vs Bottom Sheet
+      const isMobile = window.innerWidth < 1024;
+      const paddingLeft = (!isMobile && sidebarOpen && !isSidebarCollapsed) ? 450 : 50;
+      const paddingBottom = (isMobile && sidebarOpen) ? 300 : 50;
       
       map.fitBounds(trackBounds, { 
         paddingTopLeft: [paddingLeft, 50],
-        paddingBottomRight: [paddingRight, 50],
+        paddingBottomRight: [50, paddingBottom],
         maxZoom: 14 
       });
     } else if (bounds && bounds.length > 0) {
@@ -172,12 +173,27 @@ function FitBounds({ bounds, selectedTrack, sidebarOpen }) {
     
     setHasInitialized(true);
     setLastTrackId(currentTrackId);
-  }, [selectedTrack, bounds, map, hasInitialized, lastTrackId, sidebarOpen]);
+  }, [selectedTrack, bounds, map, hasInitialized, lastTrackId, sidebarOpen, isSidebarCollapsed]);
   
   return null;
 }
 
-export default function Map({ tracks, selectedTrack, onTrackClick, showMileMarkers, showStartFinish, cursorPosition, cursorIndex, onMapHover, sidebarOpen, drawMode, onSaveDrawnTrail, onCloseDrawMode, theme }) {
+export default function Map({ 
+  tracks, 
+  selectedTrack, 
+  onTrackClick, 
+  showMileMarkers, 
+  showStartFinish, 
+  cursorPosition, 
+  cursorIndex, 
+  onMapHover, 
+  sidebarOpen, 
+  isSidebarCollapsed, // Fixed: Added to function props
+  drawMode, 
+  onSaveDrawnTrail, 
+  onCloseDrawMode, 
+  theme 
+}) {
   const mapRef = useRef();
   
   // Calculate mile markers for selected track
@@ -420,7 +436,15 @@ export default function Map({ tracks, selectedTrack, onTrackClick, showMileMarke
           {/* Map Event Handler */}
           <MapEventHandler />
           
-          {bounds && <FitBounds bounds={bounds} selectedTrack={selectedTrack} sidebarOpen={sidebarOpen} />}
+          {/* Fixed: FitBounds now receives all 4 required props */}
+          {bounds && (
+            <FitBounds 
+              bounds={bounds} 
+              selectedTrack={selectedTrack} 
+              sidebarOpen={sidebarOpen} 
+              isSidebarCollapsed={isSidebarCollapsed} 
+            />
+          )}
           
           {/* Draw Trail Mode */}
           {drawMode && (
@@ -432,4 +456,4 @@ export default function Map({ tracks, selectedTrack, onTrackClick, showMileMarke
         </MapContainer>
       </div>
     );
-  }
+}
