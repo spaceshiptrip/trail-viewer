@@ -104,7 +104,7 @@ function FitBounds({ bounds, selectedTrack, sidebarOpen }) {
   return null;
 }
 
-export default function Map({ tracks, selectedTrack, onTrackClick, showMileMarkers, showStartFinish, cursorPosition, onMapHover, sidebarOpen, drawMode, onSaveDrawnTrail, onCloseDrawMode }) {
+export default function Map({ tracks, selectedTrack, onTrackClick, showMileMarkers, showStartFinish, cursorPosition, onMapHover, sidebarOpen, drawMode, onSaveDrawnTrail, onCloseDrawMode, theme }) {
   const mapRef = useRef();
   
   // Calculate mile markers for selected track
@@ -301,9 +301,9 @@ export default function Map({ tracks, selectedTrack, onTrackClick, showMileMarke
         ref={mapRef}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          attribution='© OpenStreetMap'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          className="map-tiles grayscale-[0.3] contrast-125 brightness-75"
+          className={theme === 'dark' ? 'brightness-115 contrast-105' : ''}
         />
         
         {tracks.map((track) => (

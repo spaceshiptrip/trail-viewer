@@ -203,6 +203,7 @@ function App() {
           drawMode={drawMode}
           onSaveDrawnTrail={handleSaveDrawnTrail}
           onCloseDrawMode={() => setDrawMode(false)}
+          theme={theme}
         />
         
         {/* Map Controls - Floating toggle buttons */}

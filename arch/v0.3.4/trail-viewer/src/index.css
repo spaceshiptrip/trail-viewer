@@ -87,7 +87,8 @@
 }
 
 [data-theme="dark"] .leaflet-tile-container {
-  filter: grayscale(0.3) contrast(1.25) brightness(0.75);
+  /* filter: grayscale(0.3) contrast(1.25) brightness(0.75); */
+  filter: brightness(0.90) contrast(1.25) saturate(0.75);
 }
 
 .leaflet-popup-content-wrapper {
