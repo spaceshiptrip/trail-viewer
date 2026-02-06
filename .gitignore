@@ -1,4 +1,16 @@
+# =========================
+# Node / Build
+# =========================
+node_modules
+dist
+dist-ssr
+coverage
+.vite
+.cache
+
+# =========================
 # Logs
+# =========================
 logs
 *.log
 npm-debug.log*
@@ -7,29 +19,44 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# =========================
+# Environment
+# =========================
+.env
+.env.*
 *.local
 
-# Editor directories and files
+# =========================
+# OS junk
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Editor / IDE
+# =========================
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.swp
 
-# Environment files
-.env
-.env.local
-.env.production
-
-# Downloaded source files
+# =========================
+# Archives / Downloads
+# =========================
 *.zip
 *.tar.gz
 *.rar
 *.7z
+
+# =========================
+# Optional
+# =========================
+# Ignore archived copies if you ever create them again
+archive/
+arch/
+docs/archive/
