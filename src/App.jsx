@@ -44,7 +44,9 @@ function App() {
 
       const loadedTracks = await Promise.all(
         trackFiles.map(async (filename) => {
-          const response = await fetch(`/tracks/${filename}`);
+          const url = `${import.meta.env.BASE_URL}tracks/${filename}`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Failed to load ${url} (${response.status})`);
           const data = await response.json();
           return processTrack(data, filename);
         })
