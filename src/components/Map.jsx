@@ -178,23 +178,29 @@ function FitBounds({ bounds, selectedTrack, sidebarOpen, isSidebarCollapsed }) {
   return null;
 }
 
-export default function Map({ 
-  tracks, 
-  selectedTrack, 
-  onTrackClick, 
-  showMileMarkers, 
-  showStartFinish, 
-  cursorPosition, 
-  cursorIndex, 
-  onMapHover, 
-  sidebarOpen, 
-  isSidebarCollapsed, // Fixed: Added to function props
-  drawMode, 
-  onSaveDrawnTrail, 
-  onCloseDrawMode, 
-  theme 
-}) {
+export default function Map(props = {}) {
+  const {
+    tracks = [],
+    selectedTrack,
+    onTrackClick,
+    showMileMarkers,
+    showStartFinish,
+    cursorPosition,
+    cursorIndex,
+    onMapHover,
+    sidebarOpen,
+    isSidebarCollapsed,
+    drawMode,
+    onSaveDrawnTrail,
+    onCloseDrawMode,
+    theme
+  } = props;
+  
   const mapRef = useRef();
+  
+  // Debug logging
+  console.log('Map component received props:', props);
+  console.log('Map component received tracks:', tracks, 'length:', tracks?.length);
   
   // Calculate mile markers for selected track
   const getMileMarkers = (track) => {
@@ -306,9 +312,14 @@ export default function Map({
   
   // Calculate bounds for all tracks
   const getAllBounds = () => {
-    if (tracks.length === 0) return null;
+    if (!tracks || tracks.length === 0) return null;
     
-    const allCoords = tracks.flatMap(track => {
+    // SAFETY: Filter out any tracks without geometry (stubs)
+    const validTracks = tracks.filter(track => track.geometry && track.geometry.coordinates);
+    
+    if (validTracks.length === 0) return null;
+    
+    const allCoords = validTracks.flatMap(track => {
       if (track.geometry.type === 'LineString') {
         return track.geometry.coordinates.map(coord => [coord[1], coord[0]]);
       } else if (track.geometry.type === 'MultiLineString') {
@@ -325,7 +336,7 @@ export default function Map({
   };
 
   const bounds = getAllBounds();
-  const center = bounds ? bounds.getCenter() : [39.8283, -98.5795]; // Default to center of US
+  const center = bounds ? bounds.getCenter() : [34.1478, -118.1445]; // Default to LA area
   
 
   // properties for the selected line
@@ -413,6 +424,7 @@ export default function Map({
 
         {/* Non-selected tracks */}
         {tracks
+          .filter(t => t.geometry && t.geometry.coordinates) // SAFETY: Skip stubs
           .filter(t => !selectedTrack || t.properties.id !== selectedTrack.properties.id)
           .map((track) => (
             <GeoJSON
@@ -424,13 +436,12 @@ export default function Map({
           ))}
 
         {/* Selected track: white outline + green core (drawn on top) */}
-        {selectedTrack && (
+        {selectedTrack && selectedTrack.geometry && (
           <>
             <GeoJSON
               key={`selected-outline-${selectedTrack.properties.id}`}
               data={selectedTrack}
               style={getSelectedOutlineStyle}
-              // Keep interactions (optional): clicking the selected track should still “select” it
               onEachFeature={onEachFeature}
             />
             <GeoJSON
@@ -490,7 +501,7 @@ export default function Map({
           {/* Map Event Handler */}
           <MapEventHandler />
           
-          {/* Fixed: FitBounds now receives all 4 required props */}
+          {/* FitBounds with all required props */}
           {bounds && (
             <FitBounds 
               bounds={bounds} 

@@ -6,9 +6,11 @@ import ThemeToggle from './components/ThemeToggle';
 import { calculateDistance, calculateElevationGain } from './utils';
 
 function App() {
+  // All state hooks MUST be at the top, in the same order, every render
   const [tracks, setTracks] = useState([]);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingTrack, setLoadingTrack] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showMileMarkers, setShowMileMarkers] = useState(true);
   const [showStartFinish, setShowStartFinish] = useState(true);
@@ -16,37 +18,59 @@ function App() {
   const [graphHoverIndex, setGraphHoverIndex] = useState(null);
   const [drawMode, setDrawMode] = useState(false);
   const [isSheetMinimized, setIsSheetMinimized] = useState(false);
-  // Near your other useState hooks
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [theme, setTheme] = useState(() => {
-    // Get theme from localStorage or default to dark
-    return localStorage.getItem('theme') || 'dark';
-  });
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+  const [trackCache, setTrackCache] = useState({});  // Use plain object instead of Map
 
-  // Apply theme to document and save to localStorage
+  // All useEffect hooks after useState hooks
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    loadManifest();
+  }, []);
+
   const toggleTheme = () => {
     setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
   };
 
-  useEffect(() => {
-    loadTracks();
-  }, []);
-
-  const loadTracks = async () => {
+  const loadManifest = async () => {
     try {
-      // This will load all GeoJSON files from the public/tracks directory
-      // You'll need to manually list your files here or create an index
+      const url = `${import.meta.env.BASE_URL}tracks/manifest.json`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to load manifest (${response.status})`);
+      const manifest = await response.json();
+      
+      const trackStubs = manifest.tracks.map(track => ({
+        properties: {
+          id: track.file,
+          name: track.name,
+          location: track.location,
+          description: track.description,
+          distance: track.distance,
+          elevationGain: track.elevationGain,
+          filename: track.file
+        },
+        isStub: true
+      }));
+
+      setTracks(trackStubs);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading manifest:', error);
+      loadTracksLegacy();
+    }
+  };
+
+  const loadTracksLegacy = async () => {
+    try {
       const trackFiles = [
         'Beaudry2VerdugoPeak_11.geojson',
         'Sunshine2VerdugoPeak_12.geojson',
         'Palm2Lukens_14.geojson',
         'Mount_Wilson_via_Sierra_Madre_Jones_Peak_and_Bailey_Canyon_Loop.geojson',
-        // Add your own GeoJSON filenames here:
       ];
 
       const loadedTracks = await Promise.all(
@@ -67,9 +91,37 @@ function App() {
     }
   };
 
-  const processTrack = (geojson, filename) => {
+  const loadTrackGeoJSON = async (trackStub) => {
+    const filename = trackStub.properties.filename;
+    
+    // Check cache (plain object)
+    if (trackCache[filename]) {
+      return trackCache[filename];
+    }
+
+    setLoadingTrack(true);
     try {
-      // Handle both Feature and FeatureCollection
+      const url = `${import.meta.env.BASE_URL}tracks/${filename}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to load ${url} (${response.status})`);
+      const data = await response.json();
+      
+      const processedTrack = processTrack(data, filename, trackStub.properties);
+      
+      // Cache it (plain object)
+      setTrackCache(prev => ({ ...prev, [filename]: processedTrack }));
+      
+      return processedTrack;
+    } catch (error) {
+      console.error('Error loading track GeoJSON:', filename, error);
+      return null;
+    } finally {
+      setLoadingTrack(false);
+    }
+  };
+
+  const processTrack = (geojson, filename, existingProps = null) => {
+    try {
       let feature;
       if (geojson.type === 'FeatureCollection' && geojson.features.length > 0) {
         feature = geojson.features[0];
@@ -79,7 +131,6 @@ function App() {
         return null;
       }
 
-      // Get coordinates based on geometry type
       let coords;
       if (feature.geometry.type === 'LineString') {
         coords = feature.geometry.coordinates;
@@ -89,27 +140,18 @@ function App() {
         return null;
       }
 
-      // Calculate stats
-      const distance = calculateDistance(coords);
-      const elevationGain = calculateElevationGain(coords);
+      const distance = existingProps?.distance ?? calculateDistance(coords);
+      const elevationGain = existingProps?.elevationGain ?? calculateElevationGain(coords);
 
-      // Ensure properties exist and add calculated data
       feature.properties = {
         ...feature.properties,
-        id: feature.properties?.id || filename,
-        name: feature.properties?.name || filename.replace('.geojson', ''),
+        ...existingProps,
+        id: existingProps?.id || feature.properties?.id || filename,
+        name: existingProps?.name || feature.properties?.name || filename.replace('.geojson', ''),
+        filename: filename,
         distance,
         elevationGain
       };
-
-      // DEBUG console output stats
-      const elevationsFt = coords.map(c => c[2] * 3.28084);
-      console.log(filename, {
-        start: elevationsFt[0],
-        max: Math.max(...elevationsFt),
-        min: Math.min(...elevationsFt),
-        gain: elevationGain
-      });
 
       return feature;
     } catch (error) {
@@ -118,9 +160,17 @@ function App() {
     }
   };
 
-  const handleTrackSelect = (track) => {
-    setSelectedTrack(track);
-    setIsMenuOpen(false); 
+  const handleTrackSelect = async (track) => {
+    setIsMenuOpen(false);
+    
+    if (track.isStub) {
+      const fullTrack = await loadTrackGeoJSON(track);
+      if (fullTrack) {
+        setSelectedTrack(fullTrack);
+      }
+    } else {
+      setSelectedTrack(track);
+    }
   };
 
   const handleCloseSidebar = () => {
@@ -129,7 +179,6 @@ function App() {
     setGraphHoverIndex(null);
   };
   
-  // Handle cursor position from elevation graph
   const handleGraphCursor = (index) => {
     setGraphHoverIndex(index);
     if (index !== null && selectedTrack) {
@@ -145,7 +194,6 @@ function App() {
     }
   };
   
-  // Handle hover on map
   const handleMapHover = (index) => {
     setGraphHoverIndex(index);
     if (index !== null && selectedTrack) {
@@ -159,7 +207,6 @@ function App() {
     }
   };
   
-  // Handle saving a drawn trail
   const handleSaveDrawnTrail = (geojson) => {
     const processedTrack = processTrack(geojson, `drawn-${Date.now()}.geojson`);
     if (processedTrack) {
@@ -187,7 +234,6 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col lg:flex-row overflow-hidden bg-[var(--bg-primary)]">
-      {/* Hamburger Button */}
       <button 
         onClick={() => setIsMenuOpen(true)}
         className="lg:hidden fixed top-4 left-4 z-[1001] p-3 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--accent-primary)] shadow-lg"
@@ -195,13 +241,11 @@ function App() {
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
       </button>
 
-      {/* Track List - Now an overlay on mobile */}
       <div className={`
         fixed inset-y-0 left-0 z-[1002] w-80 transform transition-transform duration-300 ease-in-out
         ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:relative lg:translate-x-0 lg:w-96 lg:h-full border-r border-[var(--border-color)]
       `}>
-         {/* Mobile Close Button */}
          <button onClick={() => setIsMenuOpen(false)} className="lg:hidden absolute top-4 right-4 z-20 text-[var(--text-secondary)]">
            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
          </button>
@@ -210,13 +254,13 @@ function App() {
             selectedTrack={selectedTrack}
             onTrackSelect={handleTrackSelect}
             themeToggle={<ThemeToggle theme={theme} onToggle={toggleTheme} />}
+            loadingTrack={loadingTrack}
           />
       </div>
 
-      {/* Map - Full screen on mobile */}
       <div className="flex-1 relative h-full">
         <Map
-          tracks={tracks}
+          tracks={Object.values(trackCache)} // Convert object to array
           selectedTrack={selectedTrack}
           onTrackClick={handleTrackSelect}
           showMileMarkers={showMileMarkers}
@@ -233,7 +277,6 @@ function App() {
         />
       </div>
 
-      {/* Details - Sliding Bottom Sheet on Mobile / Collapsible Sidebar on Desktop */}
       {selectedTrack && (
         <div className={`
           fixed bottom-0 left-0 w-full z-[1003] transform transition-all duration-500 ease-in-out shadow-2xl bg-[var(--bg-secondary)]
@@ -242,7 +285,6 @@ function App() {
           lg:relative lg:translate-y-0 lg:h-full lg:w-96 lg:rounded-none lg:border-l border-[var(--border-color)]
           ${isSidebarCollapsed ? 'lg:w-0 lg:opacity-0' : 'lg:w-96 lg:opacity-100'}
         `}>
-          {/* Desktop Collapse Toggle Button (Visible only on Desktop when track selected) */}
           <button
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             className="hidden lg:flex absolute -left-10 top-4 z-50 p-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-l-lg text-[var(--accent-primary)] hover:brightness-110 shadow-md"
@@ -253,7 +295,6 @@ function App() {
             </svg>
           </button>
 
-          {/* Mobile Toggle Button (Visual handle) */}
           <button 
             onClick={() => setIsSheetMinimized(!isSheetMinimized)}
             className="lg:hidden absolute top-2 left-1/2 -translate-x-1/2 w-20 h-8 z-50 flex items-center justify-center"
@@ -270,18 +311,16 @@ function App() {
         </div>
       )}
 
-{/* Permanent Desktop Toggle (Visible when sidebar is collapsed to bring it back) */}
-{selectedTrack && isSidebarCollapsed && (
-  <button
-    onClick={() => setIsSidebarCollapsed(false)}
-    className="hidden lg:flex fixed right-0 top-4 z-50 p-2 bg-[var(--bg-secondary)] border border-r-0 border-[var(--border-color)] rounded-l-lg text-[var(--accent-primary)] shadow-md"
-  >
-    <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
-  </button>
-)}
-
+      {selectedTrack && isSidebarCollapsed && (
+        <button
+          onClick={() => setIsSidebarCollapsed(false)}
+          className="hidden lg:flex fixed right-0 top-4 z-50 p-2 bg-[var(--bg-secondary)] border border-r-0 border-[var(--border-color)] rounded-l-lg text-[var(--accent-primary)] shadow-md"
+        >
+          <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
