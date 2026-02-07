@@ -1,0 +1,60 @@
+{
+  "tracks": [
+    {
+      "file": "Beaudry2VerdugoPeak_11.geojson",
+      "name": "Beaudry to Verdugo Peak 11",
+      "location": "Verdugo Mtn, Glendale, CA",
+      "description": "",
+      "distance": 10.97,
+      "elevationGain": 1869
+    },
+    {
+      "file": "BeaudryGlendaleLoop9.geojson",
+      "name": "Beaudry through Glendale Loop 9mi",
+      "location": "Verdugo Hills, Glendale, CA",
+      "description": "Mix between trail fireroads and streets back to the start. Hits the high peaks of the Verdugos.",
+      "distance": 9.21,
+      "elevationGain": 1858
+    },
+    {
+      "file": "Mount_Wilson_via_Sierra_Madre_Jones_Peak_and_Bailey_Canyon_Loop.geojson",
+      "name": "Mount Wilson via Sierra Madre, Jones Peak, and Bailey Canyon Loop 14.5",
+      "location": "Sierra Madre, CA",
+      "description": "Mt. Wilson (5710 ft)",
+      "distance": 14.53,
+      "elevationGain": 4904
+    },
+    {
+      "file": "Palm2Lukens_14.geojson",
+      "name": "Palm Drive to Mt. Lukens Peak 14",
+      "location": "Mt. Lukens, Los Angeles, CA",
+      "description": "Out and back on mostly uncovered fire road to highest point in city of LA (5075 ft)",
+      "distance": 14.1,
+      "elevationGain": 3257
+    },
+    {
+      "file": "Sunshine2VerdugoPeak_12.geojson",
+      "name": "Sunshine Drive to Verdugo Peak 12",
+      "location": "Verdugo Mtn, Glendale, CA",
+      "description": "Wide Fireroad route up the Verdugos.  Hits the peaks Verdugo Peak (~3,126 ft) — Verdugos tallest point, Tongva Peak (~2,656 ft), Mount Thom (~2440 ft).",
+      "distance": 12.27,
+      "elevationGain": 1834
+    },
+    {
+      "file": "lakeside-loop.geojson",
+      "name": "Lakeside Loop Trail",
+      "location": "Grand Teton National Park, Wyoming",
+      "description": "An easy loop around a pristine alpine lake with minimal elevation change. Great for families and beginners.",
+      "distance": 2.03,
+      "elevationGain": 82
+    },
+    {
+      "file": "sample-trail.geojson",
+      "name": "Sample Mountain Trail",
+      "location": "Rocky Mountain National Park, Colorado",
+      "description": "A beautiful trail through the mountains with stunning views and moderate difficulty. Perfect for a morning hike.",
+      "distance": 2.17,
+      "elevationGain": 1886
+    }
+  ]
+}

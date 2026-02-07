@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { Search, Mountain, TrendingUp, Download } from 'lucide-react';
-
-
+import { Search, Mountain, TrendingUp, Download, Loader2 } from 'lucide-react';
 
 function gpxUrlForTrack(track) {
   const name = track?.properties?.name || '';
   return `${import.meta.env.BASE_URL}tracks/gpx/${encodeURIComponent(name)}.gpx`;
 }
 
-export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeToggle }) {
+export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeToggle, loadingTrack }) {
   const [searchTerm, setSearchTerm] = useState('');
   
   const filteredTracks = tracks.filter(track => {
@@ -51,6 +49,16 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
         </div>
       </div>
       
+      {/* Loading Indicator */}
+      {loadingTrack && (
+        <div className="px-4 py-2 bg-[var(--accent-primary)] bg-opacity-10 border-b border-[var(--accent-primary)] border-opacity-30">
+          <div className="flex items-center gap-2 text-[var(--accent-primary)] text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Loading track details...</span>
+          </div>
+        </div>
+      )}
+      
       {/* Track List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {filteredTracks.length === 0 ? (
@@ -59,7 +67,7 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
               <>
                 <Mountain className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p className="text-lg font-medium mb-2">No tracks loaded</p>
-                <p className="text-sm">Add GeoJSON files to /public/tracks/</p>
+                <p className="text-sm">Add tracks to manifest.json</p>
               </>
             ) : (
               <>
@@ -85,7 +93,6 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
                 <h3 className="font-display font-semibold text-lg mb-2 text-[var(--text-primary)]">
                   {track.properties.name || `Track ${idx + 1}`}
                 </h3>
-
               </div>
               
               {track.properties.location && (
@@ -94,16 +101,17 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
                 </p>
               )}
               
-
               <div className="flex items-center justify-between text-sm">
                 {/* left side stats */}
                 <div className="flex gap-4">
-                  <div className="flex items-center gap-1.5 text-[var(--accent-primary)]">
-                    <Mountain className="w-4 h-4" />
-                    <span className="font-mono font-medium">
-                      {track.properties.distance?.toFixed(2) || '0'} mi
-                    </span>
-                  </div>
+                  {track.properties.distance !== undefined && (
+                    <div className="flex items-center gap-1.5 text-[var(--accent-primary)]">
+                      <Mountain className="w-4 h-4" />
+                      <span className="font-mono font-medium">
+                        {track.properties.distance?.toFixed(2) || '0'} mi
+                      </span>
+                    </div>
+                  )}
 
                   {track.properties.elevationGain > 0 && (
                     <div className="flex items-center gap-1.5 text-[var(--accent-primary)]">
