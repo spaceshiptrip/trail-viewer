@@ -5,6 +5,10 @@ import Sidebar from './components/Sidebar';
 import ThemeToggle from './components/ThemeToggle';
 import { calculateDistance, calculateElevationGain } from './utils';
 
+// Max number of tracks in browser memory
+const MAX_CACHED_TRACKS = 4;
+
+
 function App() {
   // All state hooks MUST be at the top, in the same order, every render
   const [tracks, setTracks] = useState([]);
@@ -21,6 +25,7 @@ function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [trackCache, setTrackCache] = useState({});  // Use plain object instead of Map
+  const [trackCacheOrder, setTrackCacheOrder] = useState([]); // array of filenames, most-recent at end
 
   // All useEffect hooks after useState hooks
   useEffect(() => {
@@ -93,9 +98,14 @@ function App() {
 
   const loadTrackGeoJSON = async (trackStub) => {
     const filename = trackStub.properties.filename;
-    
-    // Check cache (plain object)
+
+    // If cached, mark as most-recent and return
     if (trackCache[filename]) {
+      setTrackCacheOrder(prev => {
+        const next = prev.filter(f => f !== filename);
+        next.push(filename);
+        return next;
+      });
       return trackCache[filename];
     }
 
@@ -105,12 +115,32 @@ function App() {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Failed to load ${url} (${response.status})`);
       const data = await response.json();
-      
+
       const processedTrack = processTrack(data, filename, trackStub.properties);
-      
-      // Cache it (plain object)
-      setTrackCache(prev => ({ ...prev, [filename]: processedTrack }));
-      
+      if (!processedTrack) return null;
+
+      // Add to cache + enforce max size (LRU eviction)
+      setTrackCache(prevCache => {
+        const nextCache = { ...prevCache, [filename]: processedTrack };
+        return nextCache;
+      });
+
+      setTrackCacheOrder(prevOrder => {
+        const nextOrder = prevOrder.filter(f => f !== filename);
+        nextOrder.push(filename);
+
+        // Evict least-recently used while over limit
+        while (nextOrder.length > MAX_CACHED_TRACKS) {
+          const evict = nextOrder.shift(); // oldest
+          setTrackCache(prevCache => {
+            const { [evict]: _drop, ...rest } = prevCache;
+            return rest;
+          });
+        }
+
+        return nextOrder;
+      });
+
       return processedTrack;
     } catch (error) {
       console.error('Error loading track GeoJSON:', filename, error);
