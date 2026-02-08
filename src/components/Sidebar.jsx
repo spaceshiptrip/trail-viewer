@@ -3,8 +3,20 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Mountain, TrendingUp, MapPin, Cloud, Wind, Droplets, Calendar, Activity, Share2, Download } from 'lucide-react';
 import { getElevationProfile, fetchWeather, fetchAQI } from '../utils';
 
+
 function gpxUrlForTrack(track) {
-  return `${import.meta.env.BASE_URL}tracks/gpx/${track.file.replace('.geojson', '.gpx')}`;
+  const file = track?.file;
+  const name = track?.properties?.name;
+
+  if (file) {
+    return `${import.meta.env.BASE_URL}tracks/gpx/${file.replace('.geojson','.gpx')}`;
+  }
+
+  if (name) {
+    return `${import.meta.env.BASE_URL}tracks/gpx/${encodeURIComponent(name)}.gpx`;
+  }
+
+  return '#';
 }
 
 export default function Sidebar({ track, onClose, onCursorPosition, mapHoverIndex }) {
