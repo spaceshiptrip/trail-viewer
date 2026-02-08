@@ -110,6 +110,9 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
     return 'h-[85vh]';
   };
 
+  // ✅ FIX: allow desktop to render full content even if snapState is minimized/full-gated
+  const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+
   return (
     <div className={`w-full lg:w-96 lg:h-full bg-[var(--bg-secondary)] lg:border-l border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 ${getHeight()} lg:!h-full`}>
       {/* Mobile Drag Handle - single unified one */}
@@ -173,7 +176,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
         {/* Stats Grid */}
 
         <div className={`${snapState === 'minimized' ? 'hidden lg:block' : ''}`}>
-          {snapState !== 'minimized' && (
+          {(snapState !== 'minimized' || isDesktop) && (
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="sidebar-section">
@@ -272,7 +275,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
               {/* Weather Section - only show in full mode */}
 
               <div className={`${snapState !== 'full' ? 'hidden lg:block' : ''}`}>
-                {snapState === 'full' && (
+                {(snapState === 'full' || isDesktop) && (
                   <div className="sidebar-section">
                     <div className="flex items-center gap-2 mb-4">
                       <Cloud className="w-5 h-5 text-[var(--accent-primary)]" />
@@ -359,7 +362,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
               {/* Air Quality Section - only show in full mode */}
 
               <div className={`${snapState !== 'full' ? 'hidden lg:block' : ''}`}>
-                {snapState === 'full' && (
+                {(snapState === 'full' || isDesktop) && (
                   <div className="sidebar-section">
                     <div className="flex items-center gap-2 mb-4">
                       <Activity className="w-5 h-5 text-[var(--accent-primary)]" />
