@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef} from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
-import { Mountain, TrendingUp, MapPin, Cloud, Wind, Droplets, Calendar, Activity, Share2 } from 'lucide-react';
+import { Mountain, TrendingUp, MapPin, Cloud, Wind, Droplets, Calendar, Activity, Share2, Download } from 'lucide-react';
 import { getElevationProfile, fetchWeather, fetchAQI } from '../utils';
 
+function gpxUrlForTrack(track) {
+  return `${import.meta.env.BASE_URL}tracks/gpx/${track.file.replace('.geojson', '.gpx')}`;
+}
 
 export default function Sidebar({ track, onClose, onCursorPosition, mapHoverIndex }) {
   const [weather, setWeather] = useState(null);
@@ -75,8 +78,6 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
   
   if (!track) return null;
 
-
-
   useEffect(() => {
     if (snapState === 'mid' && profileRef.current) {
       profileRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -111,11 +112,21 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
         <div className={`border-b border-[var(--border-color)] lg:sticky lg:top-0 bg-[var(--bg-secondary)] z-10 ${snapState === 'minimized' ? 'px-4 pt-0 pb-2' : 'p-6'}`}>
-          <div className={`flex justify-between items-start ${snapState === 'minimized' ? 'mb-1' : 'mb-4'}`}>
+          <div className={`flex justify-between items-start gap-3 ${snapState === 'minimized' ? 'mb-1' : 'mb-4'}`}>
             <h2 className={`text-2xl font-display font-bold text-[var(--accent-primary)] ${snapState === 'minimized' ? 'line-clamp-2' : ''}`}>
               {track.properties.name || 'Unnamed Track'}
             </h2>
             <div className="flex gap-2 shrink-0 ml-2">
+              
+              <a  href={gpxUrlForTrack(track)}
+                download
+                title="Download GPX"
+                aria-label="Download GPX"
+                onClick={(e) => e.stopPropagation()}
+                className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-1"
+              >
+                <Download className="w-5 h-5" />
+              </a>
               <button
                 onClick={handleCopyLink}
                 className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-1"
