@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef} from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 import { Mountain, TrendingUp, MapPin, Cloud, Wind, Droplets, Calendar, Activity, Share2 } from 'lucide-react';
 import { getElevationProfile, fetchWeather, fetchAQI } from '../utils';
+
 
 export default function Sidebar({ track, onClose, onCursorPosition, mapHoverIndex }) {
   const [weather, setWeather] = useState(null);
@@ -11,6 +12,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [snapState, setSnapState] = useState('minimized'); // 'minimized', 'mid', 'full'
   const [copySuccess, setCopySuccess] = useState(false);
+  const profileRef = useRef(null);
   
   // Handle elevation graph hover
   const handleChartMouseMove = (data) => {
@@ -72,6 +74,14 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
   }, [track]);
   
   if (!track) return null;
+
+
+
+  useEffect(() => {
+    if (snapState === 'mid' && profileRef.current) {
+      profileRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [snapState]);
   
   const coords = track.geometry.type === 'LineString' 
     ? track.geometry.coordinates 
@@ -82,8 +92,8 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
 
   // Calculate height based on snap state
   const getHeight = () => {
-    if (snapState === 'minimized') return 'h-[90px]';
-    if (snapState === 'mid') return 'h-[420px]';
+    if (snapState === 'minimized') return 'h-[80px]';
+    if (snapState === 'mid') return 'h-[330px]';
     return 'h-[85vh]';
   };
   
@@ -92,7 +102,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
       {/* Mobile Drag Handle - single unified one */}
       <button
         onClick={cycleSnapState}
-        className="lg:hidden w-full py-3 flex items-center justify-center shrink-0 cursor-pointer active:bg-[var(--bg-tertiary)]"
+        className={`lg:hidden w-full flex items-center justify-center shrink-0 cursor-pointer active:bg-[var(--bg-tertiary)] ${snapState === 'minimized' ? 'py-1' : 'py-3'}`}
       >
         <div className="w-12 h-1.5 bg-[var(--border-color)] rounded-full" />
       </button>
@@ -100,8 +110,8 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className="p-6 border-b border-[var(--border-color)] lg:sticky lg:top-0 bg-[var(--bg-secondary)] z-10">
-          <div className="flex justify-between items-start mb-4">
+        <div className={`border-b border-[var(--border-color)] lg:sticky lg:top-0 bg-[var(--bg-secondary)] z-10 ${snapState === 'minimized' ? 'px-4 pt-0 pb-2' : 'p-6'}`}>
+          <div className={`flex justify-between items-start ${snapState === 'minimized' ? 'mb-1' : 'mb-4'}`}>
             <h2 className={`text-2xl font-display font-bold text-[var(--accent-primary)] ${snapState === 'minimized' ? 'line-clamp-2' : ''}`}>
               {track.properties.name || 'Unnamed Track'}
             </h2>
@@ -177,7 +187,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
             
             {/* Elevation Profile */}
             {hasElevation && (
-              <div className="sidebar-section">
+              <div ref={profileRef} className="sidebar-section">
                 <h3 className="text-lg font-display font-semibold mb-4 text-[var(--accent-primary)]">
                   Elevation Profile
                 </h3>
