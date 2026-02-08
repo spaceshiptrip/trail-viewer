@@ -309,9 +309,8 @@ function App() {
 
       {selectedTrack && (
         <div className={`
-          fixed bottom-0 left-0 w-full z-[1003] transform transition-all duration-500 ease-in-out shadow-2xl bg-[var(--bg-secondary)]
-          ${isSheetMinimized ? 'translate-y-[calc(100%-60px)]' : 'translate-y-0'}
-          h-[70vh] rounded-t-3xl
+          fixed bottom-0 left-0 w-full z-[1003] transform transition-all duration-300 ease-in-out shadow-2xl bg-[var(--bg-secondary)]
+          rounded-t-3xl
           lg:relative lg:translate-y-0 lg:h-full lg:w-96 lg:rounded-none lg:border-l border-[var(--border-color)]
           ${isSidebarCollapsed ? 'lg:w-0 lg:opacity-0' : 'lg:w-96 lg:opacity-100'}
         `}>
@@ -325,13 +324,6 @@ function App() {
             </svg>
           </button>
 
-          <button 
-            onClick={() => setIsSheetMinimized(!isSheetMinimized)}
-            className="lg:hidden absolute top-2 left-1/2 -translate-x-1/2 w-20 h-8 z-50 flex items-center justify-center"
-          >
-            <div className="w-12 h-1.5 bg-[var(--border-color)] rounded-full opacity-50" />
-          </button>
-
           <Sidebar 
             track={selectedTrack} 
             onClose={handleCloseSidebar}
@@ -340,6 +332,8 @@ function App() {
           />
         </div>
       )}
+
+
 
       {selectedTrack && isSidebarCollapsed && (
         <button
