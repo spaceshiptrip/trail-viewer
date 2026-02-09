@@ -17,6 +17,14 @@
       "elevationGain": 1858
     },
     {
+      "file": "MarshallCanyonBigLoop12.geojson",
+      "name": "Marshall Canyon Big Loop 12",
+      "location": "Claremont Hills Regional Park, Claremont, CA",
+      "description": "Starts Oak Mesa Park through Marshall Canyon and loops around Claremont Hills.",
+      "distance": 11.97,
+      "elevationGain": 1740
+    },
+    {
       "file": "Mount_Wilson_via_Sierra_Madre_Jones_Peak_and_Bailey_Canyon_Loop.geojson",
       "name": "Mount Wilson via Sierra Madre, Jones Peak, and Bailey Canyon Loop 14.5",
       "location": "Sierra Madre, CA",
@@ -39,22 +47,6 @@
       "description": "Wide Fireroad route up the Verdugos.  Hits the peaks Verdugo Peak (~3,126 ft) — Verdugos tallest point, Tongva Peak (~2,656 ft), Mount Thom (~2440 ft).",
       "distance": 12.27,
       "elevationGain": 1834
-    },
-    {
-      "file": "lakeside-loop.geojson",
-      "name": "Lakeside Loop Trail",
-      "location": "Grand Teton National Park, Wyoming",
-      "description": "An easy loop around a pristine alpine lake with minimal elevation change. Great for families and beginners.",
-      "distance": 2.03,
-      "elevationGain": 82
-    },
-    {
-      "file": "sample-trail.geojson",
-      "name": "Sample Mountain Trail",
-      "location": "Rocky Mountain National Park, Colorado",
-      "description": "A beautiful trail through the mountains with stunning views and moderate difficulty. Perfect for a morning hike.",
-      "distance": 2.17,
-      "elevationGain": 1886
     }
   ]
 }
