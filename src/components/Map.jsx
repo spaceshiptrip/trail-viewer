@@ -133,47 +133,121 @@ function CursorMarker({ position, track, index }) {
 }
 
 // Component to fit map bounds to all tracks or selected track
-function FitBounds({ bounds, selectedTrack, sidebarOpen, isSidebarCollapsed }) {
+function FitBounds({ bounds, selectedTrack, sidebarOpen, isSidebarCollapsed, trackListCollapsed }) {
   const map = useMap();
   const [hasInitialized, setHasInitialized] = useState(false);
   const [lastTrackId, setLastTrackId] = useState(null);
+  const [lastCollapseState, setLastCollapseState] = useState({ sidebar: isSidebarCollapsed, trackList: trackListCollapsed });
   
   useEffect(() => {
     const currentTrackId = selectedTrack?.properties?.id || null;
+    const collapseStateChanged = 
+      lastCollapseState.sidebar !== isSidebarCollapsed || 
+      lastCollapseState.trackList !== trackListCollapsed;
     
-    // Only recenter if:
+    // Recenter if:
     // 1. First load (!hasInitialized)
     // 2. Track changed (currentTrackId !== lastTrackId)
-    const shouldRecenter = !hasInitialized || currentTrackId !== lastTrackId;
+    // 3. Collapse state changed (sidebar or tracklist collapsed/expanded)
+    const shouldRecenter = !hasInitialized || currentTrackId !== lastTrackId || collapseStateChanged;
     
     if (!shouldRecenter) return;
     
-    if (selectedTrack) {
-      // Fit to selected track only
-      const coords = selectedTrack.geometry.type === 'LineString'
-        ? selectedTrack.geometry.coordinates.map(coord => [coord[1], coord[0]])
-        : selectedTrack.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
-      
-      const trackBounds = L.latLngBounds(coords);
-      
-      // LOGIC: Responsive padding for Sidebar vs Bottom Sheet
-      const isMobile = window.innerWidth < 1024;
-      const paddingLeft = (!isMobile && sidebarOpen && !isSidebarCollapsed) ? 450 : 50;
-      const paddingBottom = (isMobile && sidebarOpen) ? 300 : 50;
-      
-      map.fitBounds(trackBounds, { 
-        paddingTopLeft: [paddingLeft, 50],
-        paddingBottomRight: [50, paddingBottom],
-        maxZoom: 14 
-      });
-    } else if (bounds && bounds.length > 0) {
-      // Fit to all tracks
-      map.fitBounds(bounds, { padding: [50, 50] });
-    }
+    // CRITICAL: Wait for CSS transitions to complete (300ms from CSS)
+    // This ensures sidebars are fully opened/closed before recentering
+    const recenterDelay = collapseStateChanged ? 350 : 0;
     
-    setHasInitialized(true);
-    setLastTrackId(currentTrackId);
-  }, [selectedTrack, bounds, map, hasInitialized, lastTrackId, sidebarOpen, isSidebarCollapsed]);
+    const recenterTimer = setTimeout(() => {
+      if (selectedTrack) {
+        // Fit to selected track only
+        const coords = selectedTrack.geometry.type === 'LineString'
+          ? selectedTrack.geometry.coordinates.map(coord => [coord[1], coord[0]])
+          : selectedTrack.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
+        
+        const trackBounds = L.latLngBounds(coords);
+        
+        // Calculate center of mass (geometric centroid) for better centering
+        let sumLat = 0;
+        let sumLng = 0;
+        coords.forEach(coord => {
+          sumLat += coord[0];
+          sumLng += coord[1];
+        });
+        const centerOfMass = L.latLng(sumLat / coords.length, sumLng / coords.length);
+        
+        // IMPROVED LOGIC: Calculate responsive padding based on ALL panel states
+        const isMobile = window.innerWidth < 1024;
+        
+        // Left padding: TrackList (desktop only, unless collapsed)
+        const paddingLeft = (!isMobile && !trackListCollapsed) ? 450 : 50;
+        
+        // Right padding: Sidebar (desktop only, unless collapsed)
+        const paddingRight = (!isMobile && sidebarOpen && !isSidebarCollapsed) ? 450 : 50;
+        
+        // Bottom padding: Mobile bottom sheet
+        const paddingBottom = (isMobile && sidebarOpen) ? 300 : 50;
+        
+        // Calculate the viewport center offset to account for asymmetric padding
+        const viewportWidth = map.getSize().x;
+        const viewportHeight = map.getSize().y;
+        
+        // Available map space (after subtracting sidebars)
+        const availableWidth = viewportWidth - paddingLeft - paddingRight;
+        const availableHeight = viewportHeight - 50 - paddingBottom;
+        
+        // Calculate the pixel offset needed to center in the available space
+        const offsetX = (paddingLeft - paddingRight) / 2;
+        const offsetY = (50 - paddingBottom) / 2;
+        
+        // Convert pixel offset to map coordinates
+        const mapCenter = map.getCenter();
+        const point = map.project(mapCenter, map.getZoom());
+        point.x += offsetX;
+        point.y += offsetY;
+        const adjustedCenter = map.unproject(point, map.getZoom());
+        
+        // First fit to bounds to get appropriate zoom level
+        map.fitBounds(trackBounds, { 
+          paddingTopLeft: [paddingLeft, 50],
+          paddingBottomRight: [paddingRight, paddingBottom],
+          maxZoom: 14,
+          animate: collapseStateChanged // Animate only when sidebars change
+        });
+        
+        // Then adjust center to center of mass with offset compensation
+        // Use a small delay to let fitBounds complete first
+        setTimeout(() => {
+          const currentZoom = map.getZoom();
+          const centerPoint = map.project(centerOfMass, currentZoom);
+          centerPoint.x -= offsetX;
+          centerPoint.y -= offsetY;
+          const finalCenter = map.unproject(centerPoint, currentZoom);
+          
+          map.setView(finalCenter, currentZoom, {
+            animate: collapseStateChanged,
+            duration: 0.3
+          });
+        }, collapseStateChanged ? 100 : 0);
+        
+      } else if (bounds && bounds.length > 0) {
+        // Fit to all tracks with symmetric padding
+        const isMobile = window.innerWidth < 1024;
+        const paddingLeft = (!isMobile && !trackListCollapsed) ? 450 : 50;
+        
+        map.fitBounds(bounds, { 
+          paddingTopLeft: [paddingLeft, 50],
+          paddingBottomRight: [50, 50],
+          animate: false
+        });
+      }
+      
+      setHasInitialized(true);
+      setLastTrackId(currentTrackId);
+      setLastCollapseState({ sidebar: isSidebarCollapsed, trackList: trackListCollapsed });
+    }, recenterDelay);
+    
+    return () => clearTimeout(recenterTimer);
+  }, [selectedTrack, bounds, map, hasInitialized, lastTrackId, sidebarOpen, isSidebarCollapsed, trackListCollapsed, lastCollapseState]);
   
   return null;
 }
@@ -190,6 +264,7 @@ export default function Map(props = {}) {
     onMapHover,
     sidebarOpen,
     isSidebarCollapsed,
+    trackListCollapsed = false,
     drawMode,
     onSaveDrawnTrail,
     onCloseDrawMode,
@@ -507,7 +582,8 @@ export default function Map(props = {}) {
               bounds={bounds} 
               selectedTrack={selectedTrack} 
               sidebarOpen={sidebarOpen} 
-              isSidebarCollapsed={isSidebarCollapsed} 
+              isSidebarCollapsed={isSidebarCollapsed}
+              trackListCollapsed={trackListCollapsed}
             />
           )}
           

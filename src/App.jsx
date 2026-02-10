@@ -23,6 +23,7 @@ function App() {
   const [drawMode, setDrawMode] = useState(false);
   const [isSheetMinimized, setIsSheetMinimized] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isTrackListCollapsed, setIsTrackListCollapsed] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [trackCache, setTrackCache] = useState({});  // Use plain object instead of Map
   const [trackCacheOrder, setTrackCacheOrder] = useState([]); // array of filenames, most-recent at end
@@ -277,11 +278,24 @@ function App() {
       <div className={`
         fixed inset-y-0 left-0 z-[1002] w-80 transform transition-transform duration-300 ease-in-out
         ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:relative lg:translate-x-0 lg:w-96 lg:h-full border-r border-[var(--border-color)]
+        lg:relative lg:translate-x-0 lg:h-full border-r border-[var(--border-color)]
+        ${isTrackListCollapsed ? 'lg:w-0 lg:opacity-0 lg:overflow-hidden' : 'lg:w-96'}
       `}>
          <button onClick={() => setIsMenuOpen(false)} className="lg:hidden absolute top-4 right-4 z-20 text-[var(--text-secondary)]">
            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
          </button>
+         
+         {/* Collapse button (visible when TrackList is open) */}
+         <button
+            onClick={() => setIsTrackListCollapsed(true)}
+            className="hidden lg:flex absolute -right-10 top-4 z-50 p-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-r-lg text-[var(--accent-primary)] hover:brightness-110 shadow-md"
+            title="Hide Track List"
+          >
+            <svg className="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+         
          <TrackList
             tracks={tracks}
             selectedTrack={selectedTrack}
@@ -290,6 +304,19 @@ function App() {
             loadingTrack={loadingTrack}
           />
       </div>
+
+      {/* Expand TrackList button (visible when TrackList is collapsed) */}
+      {isTrackListCollapsed && (
+        <button
+          onClick={() => setIsTrackListCollapsed(false)}
+          className="hidden lg:flex fixed left-4 top-4 z-[1004] p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--accent-primary)] hover:brightness-110 shadow-lg items-center justify-center"
+          title="Show Track List"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
 
       <div className="flex-1 relative h-full">
         <Map
@@ -307,6 +334,7 @@ function App() {
           theme={theme}
           sidebarOpen={!!selectedTrack && !isSidebarCollapsed}
           isSidebarCollapsed={isSidebarCollapsed}
+          trackListCollapsed={isTrackListCollapsed}
         />
       </div>
 
