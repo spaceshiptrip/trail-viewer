@@ -197,9 +197,11 @@ function App() {
       const fullTrack = await loadTrackGeoJSON(track);
       if (fullTrack) {
         setSelectedTrack(fullTrack);
+        setIsSidebarCollapsed(false); // Always show sidebar when selecting a track
       }
     } else {
       setSelectedTrack(track);
+      setIsSidebarCollapsed(false); // Always show sidebar when selecting a track
     }
   };
 
@@ -207,6 +209,7 @@ function App() {
     setSelectedTrack(null);
     setCursorPosition(null);
     setGraphHoverIndex(null);
+    setIsSidebarCollapsed(false); // Reset collapse state when closing
   };
   
   const handleGraphCursor = (index) => {
@@ -302,24 +305,23 @@ function App() {
           onSaveDrawnTrail={handleSaveDrawnTrail}
           onCloseDrawMode={() => setDrawMode(false)}
           theme={theme}
-          sidebarOpen={!!selectedTrack}
+          sidebarOpen={!!selectedTrack && !isSidebarCollapsed}
           isSidebarCollapsed={isSidebarCollapsed}
         />
       </div>
 
-      {selectedTrack && (
+      {selectedTrack && !isSidebarCollapsed && (
         <div className={`
           fixed bottom-0 left-0 w-full z-[1003] transform transition-all duration-300 ease-in-out shadow-2xl bg-[var(--bg-secondary)]
           rounded-t-3xl
           lg:relative lg:translate-y-0 lg:h-full lg:w-96 lg:rounded-none lg:border-l border-[var(--border-color)]
-          ${isSidebarCollapsed ? 'lg:w-0 lg:opacity-0' : 'lg:w-96 lg:opacity-100'}
         `}>
           <button
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            onClick={() => setIsSidebarCollapsed(true)}
             className="hidden lg:flex absolute -left-10 top-4 z-50 p-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-l-lg text-[var(--accent-primary)] hover:brightness-110 shadow-md"
-            title={isSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
+            title="Hide Sidebar"
           >
-            <svg className={`w-5 h-5 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -333,15 +335,14 @@ function App() {
         </div>
       )}
 
-
-
       {selectedTrack && isSidebarCollapsed && (
         <button
           onClick={() => setIsSidebarCollapsed(false)}
-          className="hidden lg:flex fixed right-0 top-4 z-50 p-2 bg-[var(--bg-secondary)] border border-r-0 border-[var(--border-color)] rounded-l-lg text-[var(--accent-primary)] shadow-md"
+          className="hidden lg:flex fixed right-4 top-4 z-[1004] p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--accent-primary)] hover:brightness-110 shadow-lg items-center justify-center"
+          title="Show Sidebar"
         >
-          <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
       )}
