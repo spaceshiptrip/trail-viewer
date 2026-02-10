@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
-import { Mountain, TrendingUp, MapPin, Cloud, Wind, Droplets, Calendar, Activity, Share2, Download } from 'lucide-react';
-import { getElevationProfile, fetchWeather, fetchAQI } from '../utils';
+import { Mountain, TrendingUp, MapPin, Cloud, Wind, Droplets, Calendar, Activity, Share2, Download, Zap } from 'lucide-react';
+import { getElevationProfile, fetchWeather, fetchAQI, calculateEquivalentFlatDistance, calculateClimbFactor } from '../utils';
 
 
 function gpxUrlForTrack(track) {
@@ -28,6 +28,20 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
   const [snapState, setSnapState] = useState('minimized'); // 'minimized', 'mid', 'full'
   const [copySuccess, setCopySuccess] = useState(false);
   const profileRef = useRef(null);
+
+  // Calculate equivalent flat distance and climb factor
+  const { equivalentDistance, climbFactor } = useMemo(() => {
+    if (!track) return { equivalentDistance: 0, climbFactor: 0 };
+    
+    const coords = track.geometry.type === 'LineString'
+      ? track.geometry.coordinates
+      : track.geometry.coordinates[0];
+    
+    return {
+      equivalentDistance: calculateEquivalentFlatDistance(coords),
+      climbFactor: calculateClimbFactor(coords)
+    };
+  }, [track]);
 
   // Handle elevation graph hover
   const handleChartMouseMove = (data) => {
@@ -178,6 +192,20 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
         <div className={`${snapState === 'minimized' ? 'hidden lg:block' : ''}`}>
           {(snapState !== 'minimized' || isDesktop) && (
             <div className="p-6 space-y-4">
+
+              {/* Location Info */}
+              {track.properties.location && (
+                <div className="sidebar-section">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="w-4 h-4 text-[var(--accent-primary)]" />
+                    <div className="stat-label">Location</div>
+                  </div>
+                  <div className="text-[var(--text-primary)] font-medium">
+                    {track.properties.location}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="sidebar-section">
                   <div className="flex items-center gap-2 mb-2">
@@ -200,18 +228,6 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                 </div>
               </div>
 
-              {/* Location Info */}
-              {track.properties.location && (
-                <div className="sidebar-section">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPin className="w-4 h-4 text-[var(--accent-primary)]" />
-                    <div className="stat-label">Location</div>
-                  </div>
-                  <div className="text-[var(--text-primary)] font-medium">
-                    {track.properties.location}
-                  </div>
-                </div>
-              )}
 
               {/* Elevation Profile */}
               {hasElevation && (
@@ -271,6 +287,43 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                   </ResponsiveContainer>
                 </div>
               )}
+
+              {/* Energy Expenditure Metrics */}
+              {equivalentDistance > 0 && (
+                <div className="sidebar-section">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap className="w-4 h-4 text-[var(--accent-primary)]" />
+                    <div className="stat-label">Energy Metrics</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[var(--text-secondary)] text-sm">Equivalent Flat Distance</span>
+                      <span className="text-lg font-display font-bold text-[var(--accent-primary)]">
+                        {equivalentDistance.toFixed(2)} mi
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[var(--text-secondary)] text-sm">Climb Factor</span>
+                      <span className="text-lg font-display font-bold text-[var(--accent-primary)]">
+                        {(climbFactor * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[var(--text-secondary)] mt-2 italic">
+                    Source:{' '}
+                    <a
+                      href="https://www.biorxiv.org/content/10.1101/2021.04.03.438339v3.full"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-[var(--accent-primary)]"
+                    >
+                      Crowell, "From Treadmill to Trails" (2021)
+                    </a>
+                  </p>
+                </div>
+              )}
+
 
               {/* Weather Section - only show in full mode */}
 

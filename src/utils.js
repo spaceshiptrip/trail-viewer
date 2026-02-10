@@ -93,6 +93,91 @@ export const getTrackCenter = (coordinates) => {
   ];
 };
 
+
+// Calculate energy cost per meter based on slope (Crowell/Minetti treadmill model Ct)
+// Recreational version Cr applies cutoff at i = -0.03 (paper Eq 4)
+const calculateEnergyCost = (slope) => {
+  // Table 2 parameters (RUNNING) from Crowell paper
+  const a = 26.07;     // J/kg·m
+  const b = 0.03104;
+  const c = 1.381;
+  const d = -0.06547;
+  const p = 2.181;
+
+  const i0 = -0.03; // recreational cutoff
+
+  // Eq 5 / Appendix treadmill fit
+  const Ct = (i) => {
+    const num = Math.pow(Math.pow(Math.abs(i), p) + b, 1 / p) + i;
+    const den = c + i + d;
+
+    // Avoid divide-by-zero if GPS noise creates pathological i
+    const safeDen = Math.abs(den) < 1e-9 ? (den < 0 ? -1e-9 : 1e-9) : den;
+
+    return a * (num / safeDen);
+  };
+
+  // Eq 4: recreational cutoff (chop off downhill benefit below -0.03)
+  const i = slope;
+  if (i < i0) return Ct(i0);
+  return Ct(i);
+};
+
+
+// Calculate equivalent flat distance based on energy expenditure
+export const calculateEquivalentFlatDistance = (coordinates) => {
+  if (!coordinates || coordinates.length < 2) return 0;
+  
+  let totalEnergy = 0; // in J/kg (joules per kilogram)
+  
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    const [lon1, lat1, elev1] = coordinates[i];
+    const [lon2, lat2, elev2] = coordinates[i + 1];
+    
+    // Calculate 3D distance
+    const horizontalDist = haversineDistance(lat1, lon1, lat2, lon2);
+    const elevChange = ((elev2 || 0) - (elev1 || 0)) * 3.28084; // meters to feet
+    const elevChangeMeters = elevChange / 3.28084;
+    const horizontalDistMeters = horizontalDist * 1609.34; // miles to meters
+    
+    // Calculate slope
+    let slope = horizontalDistMeters > 0 ? elevChangeMeters / horizontalDistMeters : 0;
+    slope = Math.max(-0.5, Math.min(0.5, slope)); // clamp to avoid GPS/DEM spikes
+    
+    // Calculate 3D segment distance
+    const segmentDist3D = Math.sqrt(horizontalDistMeters ** 2 + elevChangeMeters ** 2);
+    
+    // Energy cost for this segment (J/kg)
+    const energyCost = calculateEnergyCost(slope);
+    totalEnergy += energyCost * segmentDist3D;
+  }
+  
+  // Energy cost on flat ground (J/kg·m)
+  const flatEnergyCost = calculateEnergyCost(0);
+  
+  // Equivalent flat distance in meters
+  const equivalentMeters = totalEnergy / flatEnergyCost;
+  
+  // Convert to miles
+  return equivalentMeters / 1609.34;
+};
+
+// Calculate "climb factor" - fraction of energy devoted to climbing
+export const calculateClimbFactor = (coordinates) => {
+  if (!coordinates || coordinates.length < 2) return 0;
+  
+  const horizontalDistance = calculateDistance(coordinates);
+  const equivalentDistance = calculateEquivalentFlatDistance(coordinates);
+  
+  if (equivalentDistance === 0) return 0;
+  
+  // CF = (E - E0) / E = 1 - (E0 / E)
+  // where E0 is energy on flat, E is actual energy
+  const climbFactor = 1 - (horizontalDistance / equivalentDistance);
+  
+  return Math.max(0, Math.min(1, climbFactor)); // Clamp between 0 and 1
+};
+
 // Fetch weather data from Open-Meteo API (free, no API key needed)
 export const fetchWeather = async (lat, lon) => {
   try {
