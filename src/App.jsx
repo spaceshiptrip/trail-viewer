@@ -30,14 +30,74 @@ function App() {
   const [trackCache, setTrackCache] = useState({}); // Use plain object instead of Map
   const [trackCacheOrder, setTrackCacheOrder] = useState([]); // array of filenames, most-recent at end
 
+  const [leafletRemountTick, setLeafletRemountTick] = useState(0);
+
+  // ✅ NEW: hybrid map mode toggle (Leaflet 2D vs Cesium 2.5D)
+  const [mapMode, setMapMode] = useState(
+    () => localStorage.getItem("mapMode") || "2d",
+  ); // "2d" | "3d"
+
+  // ✅ Ensure Leaflet always receives the selectedTrack in its "tracks" list
+  const leafletTracks = (() => {
+    const arr = Object.values(trackCache || {});
+    const selFile = selectedTrack?.properties?.filename;
+
+    if (selectedTrack && selFile) {
+      const already = arr.some((t) => t?.properties?.filename === selFile);
+      if (!already) arr.push(selectedTrack);
+    }
+
+    return arr;
+  })();
+
+  // ✅ Force Leaflet to remount when switching back to 2D or when track changes
+  // const leafletKey = `leaflet-${mapMode}-${selectedTrack?.properties?.filename || "none"}-${isSidebarCollapsed ? "R0" : "R1"}-${isTrackListCollapsed ? "L0" : "L1"}`;
+  // const leafletKey = `leaflet-${mapMode}-${selectedTrack?.properties?.filename || "none"}-${selectedTrack ? "z2" : "z0"}`;
+  //const leafletKey = `leaflet-${mapMode}-${selectedTrack?.properties?.filename || "none"}-${leafletRemountTick}`;
+  // const leafletKey = `leaflet-${mapMode}-${selectedTrack?.properties?.filename || "none"}`;
+
+  const leafletKey = `leaflet-${mapMode}-${selectedTrack?.properties?.filename || "none"}-${isSidebarCollapsed}`;
+
+  useEffect(() => {
+    if (mapMode !== "2d") return;
+    if (!selectedTrack) return;
+
+    const t = setTimeout(() => {
+      setLeafletRemountTick((x) => x + 1);
+    }, 350); // matches your panel animation time
+
+    return () => clearTimeout(t);
+  }, [
+    mapMode,
+    selectedTrack?.properties?.filename,
+    isSidebarCollapsed,
+    isTrackListCollapsed,
+  ]);
+
   // All useEffect hooks after useState hooks
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  // ✅ NEW: persist mapMode
+  useEffect(() => {
+    localStorage.setItem("mapMode", mapMode);
+  }, [mapMode]);
+
   useEffect(() => {
     loadManifest();
+  }, []);
+
+  useEffect(() => {
+    // Force 2D default if old localStorage has 3d
+    const saved = localStorage.getItem("mapMode");
+    if (!saved || saved === "3d") {
+      localStorage.setItem("mapMode", "2d");
+      setMapMode("2d");
+    }
+    // run once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleTheme = () => {
@@ -388,27 +448,80 @@ function App() {
         </button>
       )}
 
+      {/* ✅ NEW: 2D / 3D Toggle (center-top) */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1005] flex gap-2">
+        <button
+          onClick={() => setMapMode("2d")}
+          className={`px-3 py-2 rounded-lg border text-sm shadow
+            ${
+              mapMode === "2d"
+                ? "bg-[var(--accent-primary)] text-black border-transparent"
+                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
+            }`}
+          title="2D Leaflet"
+        >
+          2D
+        </button>
+
+        <button
+          onClick={() => setMapMode("3d")}
+          className={`px-3 py-2 rounded-lg border text-sm shadow
+            ${
+              mapMode === "3d"
+                ? "bg-[var(--accent-primary)] text-black border-transparent"
+                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
+            }`}
+          title="3D Terrain"
+        >
+          3D
+        </button>
+      </div>
+
       <div className="flex-1 relative h-full">
-        <CesiumView
-          geojsonUrl={
-            selectedTrack?.properties?.filename
-              ? `${import.meta.env.BASE_URL}tracks/${selectedTrack.properties.filename}`
-              : null
-          }
-          clampToGround={true}
-          showMileMarkers={showMileMarkers}
-          cursorIndex={graphHoverIndex}
-          style={{ width: "100%", height: "100%" }}
-        />
+        {mapMode === "2d" ? (
+          <Map
+            key={leafletKey}
+            tracks={leafletTracks}
+            selectedTrack={selectedTrack}
+            onTrackClick={handleTrackSelect}
+            showMileMarkers={showMileMarkers}
+            showStartFinish={showStartFinish}
+            cursorPosition={cursorPosition}
+            cursorIndex={graphHoverIndex}
+            onMapHover={handleMapHover}
+            drawMode={drawMode}
+            onSaveDrawnTrail={handleSaveDrawnTrail}
+            onCloseDrawMode={() => setDrawMode(false)}
+            theme={theme}
+            sidebarOpen={!!selectedTrack && !isSidebarCollapsed}
+            isSidebarCollapsed={isSidebarCollapsed}
+            trackListCollapsed={isTrackListCollapsed}
+          />
+        ) : (
+          <CesiumView
+            geojsonUrl={
+              selectedTrack?.properties?.filename
+                ? `${import.meta.env.BASE_URL}tracks/${selectedTrack.properties.filename}`
+                : null
+            }
+            clampToGround={true}
+            showMileMarkers={showMileMarkers}
+            cursorIndex={graphHoverIndex}
+            style={{ width: "100%", height: "100%" }}
+          />
+        )}
       </div>
 
       {selectedTrack && !isSidebarCollapsed && (
         <div
           className={`
-          fixed bottom-0 left-0 w-full z-[1003] transform transition-all duration-300 ease-in-out shadow-2xl bg-[var(--bg-secondary)]
-          rounded-t-3xl
-          lg:relative lg:translate-y-0 lg:h-full lg:w-96 lg:rounded-none lg:border-l border-[var(--border-color)]
-        `}
+  fixed bottom-0 left-0 right-0 w-full z-[1003]
+  transform transition-all duration-300 ease-in-out shadow-2xl bg-[var(--bg-secondary)]
+  rounded-t-3xl
+
+  lg:fixed lg:top-0 lg:right-0 lg:bottom-0 lg:left-auto
+  lg:w-96 lg:rounded-none lg:border-l border-[var(--border-color)]
+`}
         >
           <button
             onClick={() => setIsSidebarCollapsed(true)}
