@@ -396,6 +396,8 @@ function App() {
               : null
           }
           clampToGround={true}
+          showMileMarkers={showMileMarkers}
+          cursorIndex={graphHoverIndex}
           style={{ width: "100%", height: "100%" }}
         />
       </div>

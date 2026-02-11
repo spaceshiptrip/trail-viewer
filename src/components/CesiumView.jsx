@@ -19,6 +19,10 @@ export default function CesiumView({
   clampToGround = true,
   // Optional: width/height styling
   style = { width: "100%", height: "100%" },
+
+  // ✅ NEW: optional cursor + mile markers controls
+  cursorIndex = null,
+  showMileMarkers = true,
 }) {
   const containerRef = useRef(null);
   const viewerRef = useRef(null);
@@ -27,6 +31,63 @@ export default function CesiumView({
 
   // ✅ NEW: keep track of whether we already injected OSM imagery fallback
   const osmLayerAddedRef = useRef(false);
+
+  // ✅ NEW: refs for track positions + entities (mile markers + cursor)
+  const trackCoordsRef = useRef(null); // Cartesian3[]
+  const mileMarkerEntitiesRef = useRef([]); // Entity[]
+  const cursorEntityRef = useRef(null); // Entity
+
+  // ✅ NEW: "positions ready" tick to prevent markers from using stale coords
+  const [trackPositionsTick, setTrackPositionsTick] = useState(0);
+
+  // ✅ NEW: helpers for distances / interpolation along the track
+  function metersBetween(a, b) {
+    const ca = Cesium.Cartographic.fromCartesian(a);
+    const cb = Cesium.Cartographic.fromCartesian(b);
+    const geodesic = new Cesium.EllipsoidGeodesic(ca, cb);
+    return geodesic.surfaceDistance;
+  }
+
+  function interpolateAlong(positions, targetMeters) {
+    let acc = 0;
+    for (let i = 1; i < positions.length; i++) {
+      const seg = metersBetween(positions[i - 1], positions[i]);
+      if (acc + seg >= targetMeters) {
+        const t = (targetMeters - acc) / seg;
+        return Cesium.Cartesian3.lerp(
+          positions[i - 1],
+          positions[i],
+          t,
+          new Cesium.Cartesian3(),
+        );
+      }
+      acc += seg;
+    }
+    return positions[positions.length - 1];
+  }
+
+  // ✅ NEW: clear stale positions immediately when URL changes (prevents "one track behind")
+  useEffect(() => {
+    trackCoordsRef.current = null;
+    setTrackPositionsTick((t) => t + 1);
+
+    // Also hide cursor immediately (no deletions)
+    try {
+      if (cursorEntityRef.current) cursorEntityRef.current.show = false;
+    } catch (_) {}
+
+    // Also clear mile markers immediately (no deletions)
+    try {
+      const viewer = viewerRef.current;
+      if (viewer) {
+        mileMarkerEntitiesRef.current.forEach((ent) =>
+          viewer.entities.remove(ent),
+        );
+        mileMarkerEntitiesRef.current = [];
+        viewer.scene.requestRender();
+      }
+    } catch (_) {}
+  }, [geojsonUrl]);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,6 +226,10 @@ export default function CesiumView({
         // If no URL provided, just show globe
         if (!geojsonUrl) return;
 
+        // ✅ NEW: clear positions before loading new datasource (prevents stale marker build)
+        trackCoordsRef.current = null;
+        setTrackPositionsTick((t) => t + 1);
+
         // Remove previous datasource
         if (dsRef.current && viewerRef.current) {
           try {
@@ -194,6 +259,24 @@ export default function CesiumView({
             // If clampToGround is true, Cesium uses ground clamping where supported
             // If you want absolute altitudes from your GeoJSON coords, set clampToGround=false.
           }
+        }
+
+        // ✅ NEW: capture track polyline positions so we can place mile markers + cursor
+        // ALSO: bump tick so mile marker effect runs AFTER positions are ready
+        try {
+          const now = Cesium.JulianDate.now();
+          const firstWithPolyline = dataSource.entities.values.find(
+            (e) => e.polyline && e.polyline.positions,
+          );
+          if (firstWithPolyline) {
+            const positions = firstWithPolyline.polyline.positions.getValue(now);
+            if (positions && positions.length) {
+              trackCoordsRef.current = positions;
+              setTrackPositionsTick((t) => t + 1);
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to capture track positions:", e);
         }
 
         // Zoom to track
@@ -248,6 +331,120 @@ export default function CesiumView({
       } catch (_) {}
     };
   }, []);
+
+  // ✅ NEW: build/clear mile marker entities whenever track or toggle changes
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const positions = trackCoordsRef.current;
+    if (!viewer || !positions) return;
+
+    // Clear old markers
+    try {
+      mileMarkerEntitiesRef.current.forEach((ent) => viewer.entities.remove(ent));
+    } catch (_) {}
+    mileMarkerEntitiesRef.current = [];
+
+    if (!showMileMarkers) {
+      viewer.scene.requestRender();
+      return;
+    }
+
+    try {
+      let total = 0;
+      for (let i = 1; i < positions.length; i++) {
+        total += metersBetween(positions[i - 1], positions[i]);
+      }
+
+      const metersPerMile = 1609.344;
+      const mileCount = Math.floor(total / metersPerMile);
+
+      for (let m = 1; m <= mileCount; m++) {
+        const pos = interpolateAlong(positions, m * metersPerMile);
+
+        const ent = viewer.entities.add({
+          position: pos,
+          label: {
+            text: String(m),
+            font: "14px sans-serif",
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 3,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(0, -10),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          point: {
+            pixelSize: 6,
+            color: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+        });
+
+        mileMarkerEntitiesRef.current.push(ent);
+      }
+
+      viewer.scene.requestRender();
+    } catch (e) {
+      console.warn("Failed to build mile markers:", e);
+    }
+  }, [showMileMarkers, geojsonUrl, trackPositionsTick]);
+
+  // ✅ NEW: cursor entity driven by cursorIndex (hook up to your graph hover)
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const positions = trackCoordsRef.current;
+    if (!viewer || !positions) return;
+
+    try {
+      if (!cursorEntityRef.current) {
+        cursorEntityRef.current = viewer.entities.add({
+          position: positions[0],
+          point: {
+            pixelSize: 10,
+            color: Cesium.Color.YELLOW,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: {
+            text: "",
+            font: "14px sans-serif",
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 3,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(12, -12),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+        });
+      }
+
+      if (cursorIndex === null || cursorIndex === undefined) {
+        cursorEntityRef.current.show = false;
+        viewer.scene.requestRender();
+        return;
+      }
+
+      const idx = Math.max(0, Math.min(positions.length - 1, cursorIndex));
+      cursorEntityRef.current.position = positions[idx];
+      cursorEntityRef.current.show = true;
+
+      // Elevation readout (may be 0 if your GeoJSON doesn't include altitude)
+      try {
+        const c = Cesium.Cartographic.fromCartesian(positions[idx]);
+        const elevFt = (c.height || 0) * 3.28084;
+        cursorEntityRef.current.label.text = `${Math.round(
+          idx,
+        )} • ${Math.round(elevFt)} ft`;
+      } catch (_) {}
+
+      viewer.scene.requestRender();
+    } catch (e) {
+      console.warn("Failed to update cursor entity:", e);
+    }
+  }, [cursorIndex, geojsonUrl, trackPositionsTick]);
 
   return (
     <div style={{ position: "relative", ...style }}>
