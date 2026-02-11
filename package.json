@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tmcw/togeojson": "^7.1.2",
+    "cesium": "^1.138.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.263.1",
     "react": "^18.3.1",
