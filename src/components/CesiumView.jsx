@@ -37,6 +37,9 @@ export default function CesiumView({
   const mileMarkerEntitiesRef = useRef([]); // Entity[]
   const cursorEntityRef = useRef(null); // Entity
 
+  // ✅ NEW: refs for the track polyline entities (outline + core)
+  const trackCoreEntityRef = useRef(null);
+
   // ✅ NEW: "positions ready" tick to prevent markers from using stale coords
   const [trackPositionsTick, setTrackPositionsTick] = useState(0);
 
@@ -84,6 +87,18 @@ export default function CesiumView({
           viewer.entities.remove(ent),
         );
         mileMarkerEntitiesRef.current = [];
+        viewer.scene.requestRender();
+      }
+    } catch (_) {}
+
+    // Clear track core entity (we only use trackCoreEntityRef now)
+    try {
+      const viewer = viewerRef.current;
+      if (viewer) {
+        if (trackCoreEntityRef.current) {
+          viewer.entities.remove(trackCoreEntityRef.current);
+          trackCoreEntityRef.current = null;
+        }
         viewer.scene.requestRender();
       }
     } catch (_) {}
@@ -238,49 +253,78 @@ export default function CesiumView({
           dsRef.current = null;
         }
 
+        // Remove previous track entities (outline + core)
+        if (trackCoreEntityRef.current && viewerRef.current) {
+          try {
+            viewerRef.current.entities.remove(trackCoreEntityRef.current);
+          } catch (_) {}
+          trackCoreEntityRef.current = null;
+        }
+
         // Load GeoJSON
         const viewer = viewerRef.current;
         const dataSource = await Cesium.GeoJsonDataSource.load(geojsonUrl, {
-          clampToGround, // drape polygons/lines when possible
+          clampToGround: false, // We'll manually create polylines with proper styling
         });
 
         if (cancelled) return;
 
         dsRef.current = dataSource;
-        viewer.dataSources.add(dataSource);
 
-        // Style polylines a bit (GeoJSON LineString / MultiLineString)
-        // This keeps it simple: one consistent style.
+        // ✅ NEW: Extract positions but don't add the datasource (we'll render manually)
         const entities = dataSource.entities.values;
+        let positions = null;
+
         for (const ent of entities) {
           if (ent.polyline) {
-            ent.polyline.width = 4;
-            ent.polyline.material = Cesium.Color.fromCssColorString("#22c55e"); // green
-            // If clampToGround is true, Cesium uses ground clamping where supported
-            // If you want absolute altitudes from your GeoJSON coords, set clampToGround=false.
-          }
-        }
-
-        // ✅ NEW: capture track polyline positions so we can place mile markers + cursor
-        // ALSO: bump tick so mile marker effect runs AFTER positions are ready
-        try {
-          const now = Cesium.JulianDate.now();
-          const firstWithPolyline = dataSource.entities.values.find(
-            (e) => e.polyline && e.polyline.positions,
-          );
-          if (firstWithPolyline) {
-            const positions = firstWithPolyline.polyline.positions.getValue(now);
+            const now = Cesium.JulianDate.now();
+            positions = ent.polyline.positions.getValue(now);
             if (positions && positions.length) {
-              trackCoordsRef.current = positions;
-              setTrackPositionsTick((t) => t + 1);
+              break;
             }
           }
-        } catch (e) {
-          console.warn("Failed to capture track positions:", e);
         }
 
-        // Zoom to track
-        await viewer.zoomTo(dataSource);
+        if (!positions || positions.length === 0) {
+          console.warn("No valid polyline positions found in GeoJSON");
+          return;
+        }
+
+        // ✅ Use PolylineOutlineMaterialProperty for white outline + green core
+        trackCoreEntityRef.current = viewer.entities.add({
+          polyline: {
+            positions: positions,
+            width: 8, // Total width
+            material: new Cesium.PolylineOutlineMaterialProperty({
+              color: Cesium.Color.fromCssColorString("#5ab887"), // Green core
+              outlineWidth: 1.5, // White outline thickness
+              outlineColor: Cesium.Color.WHITE,
+            }),
+            clampToGround: clampToGround,
+            classificationType: clampToGround
+              ? Cesium.ClassificationType.TERRAIN
+              : undefined,
+          },
+        });
+
+        // ✅ Capture track positions for mile markers + cursor
+        trackCoordsRef.current = positions;
+        setTrackPositionsTick((t) => t + 1);
+
+        // Zoom to track using bounding sphere
+        try {
+          const boundingSphere = Cesium.BoundingSphere.fromPoints(positions);
+          await viewer.camera.flyToBoundingSphere(boundingSphere, {
+            duration: 1.5,
+            offset: new Cesium.HeadingPitchRange(
+              0,
+              Cesium.Math.toRadians(-30), // Look down at 30 degrees
+              boundingSphere.radius * 2.5,
+            ),
+          });
+        } catch (e) {
+          console.warn("Failed to fly to track bounds:", e);
+        }
 
         // ✅ NEW: render after zoom
         viewer.scene.requestRender();
@@ -366,17 +410,17 @@ export default function CesiumView({
           label: {
             text: String(m),
             font: "14px sans-serif",
-            fillColor: Cesium.Color.WHITE,
-            outlineColor: Cesium.Color.BLACK,
-            outlineWidth: 3,
+            fillColor: Cesium.Color.fromCssColorString("#1e6f4c"), // Match 2D green text
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 2,
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             pixelOffset: new Cesium.Cartesian2(0, -10),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           point: {
-            pixelSize: 6,
+            pixelSize: 26,
             color: Cesium.Color.WHITE,
-            outlineColor: Cesium.Color.BLACK,
+            outlineColor: Cesium.Color.fromCssColorString("#5ab887"), // Match 2D border
             outlineWidth: 2,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
@@ -402,10 +446,10 @@ export default function CesiumView({
         cursorEntityRef.current = viewer.entities.add({
           position: positions[0],
           point: {
-            pixelSize: 10,
-            color: Cesium.Color.YELLOW,
-            outlineColor: Cesium.Color.BLACK,
-            outlineWidth: 2,
+            pixelSize: 9,
+            color: Cesium.Color.fromCssColorString("#5ab887"), // Match 2D cursor color
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 3,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           label: {
