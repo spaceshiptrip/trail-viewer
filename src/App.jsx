@@ -36,7 +36,7 @@ function App() {
   const [mapMode, setMapMode] = useState(
     () => localStorage.getItem("mapMode") || "2d",
   ); // "2d" | "3d"
-  
+
   // ✅ NEW: peaks data for 3D view
   const [peaks, setPeaks] = useState([]);
 
@@ -107,15 +107,17 @@ function App() {
   useEffect(() => {
     const loadPeaks = async () => {
       try {
-        const response = await fetch(`${import.meta.env.BASE_URL}peaks/peaks.json`);
+        const response = await fetch(
+          `${import.meta.env.BASE_URL}peaks/peaks.json`,
+        );
         if (!response.ok) {
-          console.warn('Failed to load peaks.json');
+          console.warn("Failed to load peaks.json");
           return;
         }
         const data = await response.json();
         setPeaks(data);
       } catch (error) {
-        console.error('Error loading peaks:', error);
+        console.error("Error loading peaks:", error);
       }
     };
 
@@ -420,7 +422,7 @@ function App() {
         {/* Collapse button (visible when TrackList is open) */}
         <button
           onClick={() => setIsTrackListCollapsed(true)}
-          className="hidden lg:flex absolute -right-10 top-4 z-50 p-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-r-lg text-[var(--accent-primary)] hover:brightness-110 shadow-md"
+          className="hidden lg:flex absolute -right-10 top-1/2 -translate-y-1/2 z-50 p-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-r-lg text-[var(--accent-primary)] hover:brightness-110 shadow-md"
           title="Hide Track List"
         >
           <svg
@@ -451,7 +453,7 @@ function App() {
       {isTrackListCollapsed && (
         <button
           onClick={() => setIsTrackListCollapsed(false)}
-          className="hidden lg:flex fixed left-4 top-4 z-[1004] p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--accent-primary)] hover:brightness-110 shadow-lg items-center justify-center"
+          className="hidden lg:flex fixed left-4 top-1/2 -translate-y-1/2 z-[1004] p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--accent-primary)] hover:brightness-110 shadow-lg items-center justify-center"
           title="Show Track List"
         >
           <svg
@@ -548,7 +550,7 @@ function App() {
         >
           <button
             onClick={() => setIsSidebarCollapsed(true)}
-            className="hidden lg:flex absolute -left-10 top-4 z-50 p-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-l-lg text-[var(--accent-primary)] hover:brightness-110 shadow-md"
+            className="hidden lg:flex absolute -left-10 top-1/2 -translate-y-1/2 z-50 p-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-l-lg text-[var(--accent-primary)] hover:brightness-110 shadow-md"
             title="Hide Sidebar"
           >
             <svg
@@ -578,7 +580,7 @@ function App() {
       {selectedTrack && isSidebarCollapsed && (
         <button
           onClick={() => setIsSidebarCollapsed(false)}
-          className="hidden lg:flex fixed right-4 top-4 z-[1004] p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--accent-primary)] hover:brightness-110 shadow-lg items-center justify-center"
+          className="hidden lg:flex fixed right-4 top-1/2 -translate-y-1/2 z-[1004] p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--accent-primary)] hover:brightness-110 shadow-lg items-center justify-center"
           title="Show Sidebar"
         >
           <svg

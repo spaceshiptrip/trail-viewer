@@ -70,5 +70,36 @@
     "lat": 37.6306,
     "lon": -119.0326,
     "elevation": 11059
+  },
+
+  {
+    "name": "Iron Mountain",
+    "lat": 34.2884113, 
+    "lon": -117.7133208,
+    "elevation": 7938
+  },
+  {
+    "name": "Sunset Peak",
+    "lat": 34.2166660, 
+    "lon": -117.6893287,
+    "elevation": 5653
+  },
+  {
+    "name": "San Jacinto Peak",
+    "lat": 33.8148,
+    "lon": -116.6794,
+    "elevation": 10834
+  },
+  {
+    "name": "Santiago Peak",
+    "lat":  33.7105507, 
+    "lon": -117.5342257,
+    "elevation": 5689
+  },
+  {
+    "name": "Mount Pinos",
+    "lat": 34.8128180, 
+    "lon": -119.1453967,
+    "elevation": 8847
   }
 ]
