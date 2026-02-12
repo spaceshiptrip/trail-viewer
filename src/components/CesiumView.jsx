@@ -78,7 +78,7 @@ export default function CesiumView({
     // Also hide cursor immediately (no deletions)
     try {
       if (cursorEntityRef.current) cursorEntityRef.current.show = false;
-    } catch (_) { }
+    } catch (_) {}
 
     // Also clear mile markers immediately (no deletions)
     try {
@@ -90,7 +90,7 @@ export default function CesiumView({
         mileMarkerEntitiesRef.current = [];
         viewer.scene.requestRender();
       }
-    } catch (_) { }
+    } catch (_) {}
 
     // Clear track core entity (we only use trackCoreEntityRef now)
     try {
@@ -102,7 +102,7 @@ export default function CesiumView({
         }
         viewer.scene.requestRender();
       }
-    } catch (_) { }
+    } catch (_) {}
   }, [geojsonUrl]);
 
   useEffect(() => {
@@ -214,7 +214,7 @@ export default function CesiumView({
             ) {
               // no-op; just confirms terrain provider exists
             }
-          } catch (_) { }
+          } catch (_) {}
         }
 
         requestAnimationFrame(() => {
@@ -250,7 +250,7 @@ export default function CesiumView({
         if (dsRef.current && viewerRef.current) {
           try {
             viewerRef.current.dataSources.remove(dsRef.current, true);
-          } catch (_) { }
+          } catch (_) {}
           dsRef.current = null;
         }
 
@@ -258,7 +258,7 @@ export default function CesiumView({
         if (trackCoreEntityRef.current && viewerRef.current) {
           try {
             viewerRef.current.entities.remove(trackCoreEntityRef.current);
-          } catch (_) { }
+          } catch (_) {}
           trackCoreEntityRef.current = null;
         }
 
@@ -291,20 +291,18 @@ export default function CesiumView({
           return;
         }
 
-
-
         // ✅ Shadow layer (dark, semi-transparent, widest)
-//        trackOutlineEntityRef.current = viewer.entities.add({
-//          polyline: {
-//            positions: positions,
-//            width: 11, // Wider than the main track
-//            material: Cesium.Color.fromCssColorString("rgba(0, 0, 0, 0.3)"), // Semi-transparent black
-//            clampToGround: clampToGround,
-//            classificationType: clampToGround
-//              ? Cesium.ClassificationType.TERRAIN
-//              : undefined,
-//          },
-//        });
+        //        trackOutlineEntityRef.current = viewer.entities.add({
+        //          polyline: {
+        //            positions: positions,
+        //            width: 11, // Wider than the main track
+        //            material: Cesium.Color.fromCssColorString("rgba(0, 0, 0, 0.3)"), // Semi-transparent black
+        //            clampToGround: clampToGround,
+        //            classificationType: clampToGround
+        //              ? Cesium.ClassificationType.TERRAIN
+        //              : undefined,
+        //          },
+        //        });
 
         // ✅ Main track with white outline + green core
         trackCoreEntityRef.current = viewer.entities.add({
@@ -322,7 +320,6 @@ export default function CesiumView({
               : undefined,
           },
         });
-
 
         // ✅ Capture track positions for mile markers + cursor
         trackCoordsRef.current = positions;
@@ -366,7 +363,7 @@ export default function CesiumView({
       if (viewerRef.current) {
         try {
           viewerRef.current.destroy();
-        } catch (_) { }
+        } catch (_) {}
         viewerRef.current = null;
         dsRef.current = null;
       }
@@ -389,11 +386,11 @@ export default function CesiumView({
     return () => {
       try {
         ro.disconnect();
-      } catch (_) { }
+      } catch (_) {}
     };
   }, []);
 
-  // ✅ NEW: build/clear mile marker entities whenever track or toggle changes
+  // ✅ FIX: Restoration of visible numbers with Billboard + EyeOffset
   useEffect(() => {
     const viewer = viewerRef.current;
     const positions = trackCoordsRef.current;
@@ -401,14 +398,32 @@ export default function CesiumView({
 
     // Clear old markers
     try {
-      mileMarkerEntitiesRef.current.forEach((ent) => viewer.entities.remove(ent));
-    } catch (_) { }
+      mileMarkerEntitiesRef.current.forEach((ent) =>
+        viewer.entities.remove(ent),
+      );
+    } catch (_) {}
     mileMarkerEntitiesRef.current = [];
 
     if (!showMileMarkers) {
       viewer.scene.requestRender();
       return;
     }
+
+    // Helper to create the marker dot on the fly
+    const createCircleCanvas = (outlineColor, fill) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext("2d");
+      ctx.beginPath();
+      ctx.arc(32, 32, 28, 0, 2 * Math.PI);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = outlineColor;
+      ctx.stroke();
+      return canvas;
+    };
 
     try {
       let total = 0;
@@ -424,21 +439,27 @@ export default function CesiumView({
 
         const ent = viewer.entities.add({
           position: pos,
-          label: {
-            text: String(m),
-            font: "14px sans-serif",
-            fillColor: Cesium.Color.fromCssColorString("#1e6f4c"), // Match 2D green text
-            outlineColor: Cesium.Color.WHITE,
-            outlineWidth: 2,
-            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-            pixelOffset: new Cesium.Cartesian2(0, -10),
+          // Use Billboard for the dot to prevent it from "fighting" with the text
+          billboard: {
+            image: createCircleCanvas("#5ab887", "white"),
+            width: 26,
+            height: 26,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
-          point: {
-            pixelSize: 26,
-            color: Cesium.Color.WHITE,
-            outlineColor: Cesium.Color.fromCssColorString("#5ab887"), // Match 2D border
-            outlineWidth: 2,
+          label: {
+            text: String(m),
+            font: "bold 14px sans-serif",
+            fillColor: Cesium.Color.fromCssColorString("#1e6f4c"),
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 3,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            // Centering logic
+            horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+            verticalOrigin: Cesium.VerticalOrigin.CENTER,
+            // Nudge toward camera (Z-axis) so it's always on top of the billboard
+            eyeOffset: new Cesium.Cartesian3(0, 0, -50),
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
         });
@@ -451,7 +472,6 @@ export default function CesiumView({
       console.warn("Failed to build mile markers:", e);
     }
   }, [showMileMarkers, geojsonUrl, trackPositionsTick]);
-
   // ✅ NEW: cursor entity driven by cursorIndex (hook up to your graph hover)
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -499,7 +519,7 @@ export default function CesiumView({
         cursorEntityRef.current.label.text = `${Math.round(
           idx,
         )} • ${Math.round(elevFt)} ft`;
-      } catch (_) { }
+      } catch (_) {}
 
       viewer.scene.requestRender();
     } catch (e) {
