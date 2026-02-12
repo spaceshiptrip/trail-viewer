@@ -1,0 +1,49 @@
+[
+  {
+    "name": "Mount Whitney",
+    "lat": 36.5785,
+    "lon": -118.2923,
+    "elevation": 14505
+  },
+  {
+    "name": "Mount Baldy",
+    "lat": 34.2894,
+    "lon": -117.6462,
+    "elevation": 10064
+  },
+  {
+    "name": "San Gorgonio Mountain",
+    "lat": 34.0992,
+    "lon": -116.8249,
+    "elevation": 11503
+  },
+
+  {
+    "name": "Ontario Peak",
+    "lat": 34.2278,
+    "lon": -117.6231,
+    "elevation": 8693
+  },
+  {
+    "name": "Etiwanda Peak",
+    "lat": 34.2283,
+    "lon": -117.5725,
+    "elevation": 8662
+  },
+  { "name": "Mt Wilson", "lat": 34.2238, "lon": -118.0616, "elevation": 5713 },
+  {
+    "name": "Strawberry Peak",
+    "lat": 34.2836,
+    "lon": -118.1203,
+    "elevation": 6167
+  },
+  {
+    "name": "Mt Disappointment",
+    "lat": 34.2467,
+    "lon": -118.1048,
+    "elevation": 5963
+  },
+  { "name": "Verdugo Peak", "lat": 34.217, "lon": -118.283, "elevation": 3126 },
+  { "name": "Mt Lukens", "lat": 34.269, "lon": -118.239, "elevation": 5075 },
+  { "name": "Mt Lowe", "lat": 34.2083, "lon": -118.125, "elevation": 5604 }
+]

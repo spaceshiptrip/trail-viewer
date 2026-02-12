@@ -36,6 +36,9 @@ function App() {
   const [mapMode, setMapMode] = useState(
     () => localStorage.getItem("mapMode") || "2d",
   ); // "2d" | "3d"
+  
+  // ✅ NEW: peaks data for 3D view
+  const [peaks, setPeaks] = useState([]);
 
   // ✅ Ensure Leaflet always receives the selectedTrack in its "tracks" list
   const leafletTracks = (() => {
@@ -98,6 +101,25 @@ function App() {
     }
     // run once
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ NEW: Load peaks data on mount
+  useEffect(() => {
+    const loadPeaks = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.BASE_URL}peaks/peaks.json`);
+        if (!response.ok) {
+          console.warn('Failed to load peaks.json');
+          return;
+        }
+        const data = await response.json();
+        setPeaks(data);
+      } catch (error) {
+        console.error('Error loading peaks:', error);
+      }
+    };
+
+    loadPeaks();
   }, []);
 
   const toggleTheme = () => {
@@ -507,6 +529,7 @@ function App() {
             clampToGround={true}
             showMileMarkers={showMileMarkers}
             cursorIndex={graphHoverIndex}
+            peaks={peaks}
             style={{ width: "100%", height: "100%" }}
           />
         )}

@@ -23,6 +23,9 @@ export default function CesiumView({
   // ✅ NEW: optional cursor + mile markers controls
   cursorIndex = null,
   showMileMarkers = true,
+  
+  // ✅ NEW: peaks data - array of {name, lat, lon, elevation}
+  peaks = [],
 }) {
   const containerRef = useRef(null);
   const viewerRef = useRef(null);
@@ -32,10 +35,11 @@ export default function CesiumView({
   // ✅ NEW: keep track of whether we already injected OSM imagery fallback
   const osmLayerAddedRef = useRef(false);
 
-  // ✅ NEW: refs for track positions + entities (mile markers + cursor)
+  // ✅ NEW: refs for track positions + entities (mile markers + cursor + peaks)
   const trackCoordsRef = useRef(null); // Cartesian3[]
   const mileMarkerEntitiesRef = useRef([]); // Entity[]
   const cursorEntityRef = useRef(null); // Entity
+  const peakEntitiesRef = useRef([]); // Entity[] for peaks
 
   // ✅ NEW: refs for the track polyline entities (outline + core)
   const trackOutlineEntityRef = useRef(null);
@@ -68,6 +72,44 @@ export default function CesiumView({
       acc += seg;
     }
     return positions[positions.length - 1];
+  }
+  
+  // ✅ NEW: Helper to create Google Maps-style marker
+  function createPeakMarkerCanvas() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 48;
+    canvas.height = 64;
+    const ctx = canvas.getContext("2d");
+    
+    // Draw the pin shape (inverted teardrop)
+    ctx.beginPath();
+    ctx.arc(24, 20, 16, 0, 2 * Math.PI); // Circle at top
+    ctx.closePath();
+    ctx.fillStyle = "#EA4335"; // Google Maps red
+    ctx.fill();
+    ctx.strokeStyle = "#B71C1C"; // Darker red border
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Draw the point
+    ctx.beginPath();
+    ctx.moveTo(24, 36);
+    ctx.lineTo(16, 48);
+    ctx.lineTo(32, 48);
+    ctx.closePath();
+    ctx.fillStyle = "#EA4335";
+    ctx.fill();
+    ctx.strokeStyle = "#B71C1C";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Draw white circle in the middle
+    ctx.beginPath();
+    ctx.arc(24, 20, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = "white";
+    ctx.fill();
+    
+    return canvas;
   }
 
   // ✅ NEW: clear stale positions immediately when URL changes (prevents "one track behind")
@@ -472,6 +514,101 @@ export default function CesiumView({
       console.warn("Failed to build mile markers:", e);
     }
   }, [showMileMarkers, geojsonUrl, trackPositionsTick]);
+  
+  // ✅ NEW: Peak markers effect
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !viewer.scene || !viewer.terrainProvider) {
+      console.log('Viewer not ready for peaks yet');
+      return;
+    }
+
+    // Clear old peak markers
+    try {
+      peakEntitiesRef.current.forEach((ent) => viewer.entities.remove(ent));
+    } catch (_) {}
+    peakEntitiesRef.current = [];
+
+    if (!peaks || peaks.length === 0) {
+      viewer.scene.requestRender();
+      return;
+    }
+
+    console.log('Adding peak markers:', peaks);
+
+    // Add peaks with terrain sampling
+    const addPeaksWithTerrain = async () => {
+      try {
+        // Sample terrain heights for each peak
+        const positions = peaks.map(peak => 
+          Cesium.Cartographic.fromDegrees(peak.lon, peak.lat)
+        );
+        
+        // Try to get terrain heights, but continue if it fails
+        try {
+          await Cesium.sampleTerrainMostDetailed(viewer.terrainProvider, positions);
+        } catch (terrainError) {
+          console.warn('Terrain sampling failed, using ground level:', terrainError);
+        }
+        
+        peaks.forEach((peak, index) => {
+          const { name, lat, lon, elevation } = peak;
+          
+          console.log(`Adding peak: ${name} at ${lat}, ${lon}`);
+          
+          // Use the terrain-sampled height, or 0 if sampling failed
+          const terrainHeight = positions[index].height || 0;
+          const position = Cesium.Cartesian3.fromRadians(
+            positions[index].longitude,
+            positions[index].latitude,
+            terrainHeight
+          );
+          
+          // Format elevation (assume it's in feet, or convert as needed)
+          const elevText = elevation ? `${Math.round(elevation).toLocaleString()} ft` : '';
+          
+          const ent = viewer.entities.add({
+            position: position,
+            billboard: {
+              image: createPeakMarkerCanvas(),
+              width: 48,
+              height: 64,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            label: {
+              text: `${name}\n${elevText}`,
+              font: "bold 14px sans-serif",
+              fillColor: Cesium.Color.WHITE,
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 3,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              pixelOffset: new Cesium.Cartesian2(28, -10),
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              showBackground: true,
+              backgroundColor: Cesium.Color.fromCssColorString("rgba(0, 0, 0, 0.7)"),
+              backgroundPadding: new Cesium.Cartesian2(8, 4),
+            },
+          });
+
+          peakEntitiesRef.current.push(ent);
+          console.log('Peak entity added:', ent);
+        });
+
+        viewer.scene.requestRender();
+        console.log('Peak markers rendered, total:', peakEntitiesRef.current.length);
+      } catch (e) {
+        console.error("Failed to build peak markers:", e);
+      }
+    };
+    
+    // Add delay to ensure everything is initialized
+    setTimeout(addPeaksWithTerrain, 1000);
+  }, [peaks]);
+  
   // ✅ NEW: cursor entity driven by cursorIndex (hook up to your graph hover)
   useEffect(() => {
     const viewer = viewerRef.current;
