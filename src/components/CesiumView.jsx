@@ -38,6 +38,7 @@ export default function CesiumView({
   const cursorEntityRef = useRef(null); // Entity
 
   // ✅ NEW: refs for the track polyline entities (outline + core)
+  const trackOutlineEntityRef = useRef(null);
   const trackCoreEntityRef = useRef(null);
 
   // ✅ NEW: "positions ready" tick to prevent markers from using stale coords
@@ -77,7 +78,7 @@ export default function CesiumView({
     // Also hide cursor immediately (no deletions)
     try {
       if (cursorEntityRef.current) cursorEntityRef.current.show = false;
-    } catch (_) {}
+    } catch (_) { }
 
     // Also clear mile markers immediately (no deletions)
     try {
@@ -89,7 +90,7 @@ export default function CesiumView({
         mileMarkerEntitiesRef.current = [];
         viewer.scene.requestRender();
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // Clear track core entity (we only use trackCoreEntityRef now)
     try {
@@ -101,7 +102,7 @@ export default function CesiumView({
         }
         viewer.scene.requestRender();
       }
-    } catch (_) {}
+    } catch (_) { }
   }, [geojsonUrl]);
 
   useEffect(() => {
@@ -213,7 +214,7 @@ export default function CesiumView({
             ) {
               // no-op; just confirms terrain provider exists
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         requestAnimationFrame(() => {
@@ -249,7 +250,7 @@ export default function CesiumView({
         if (dsRef.current && viewerRef.current) {
           try {
             viewerRef.current.dataSources.remove(dsRef.current, true);
-          } catch (_) {}
+          } catch (_) { }
           dsRef.current = null;
         }
 
@@ -257,7 +258,7 @@ export default function CesiumView({
         if (trackCoreEntityRef.current && viewerRef.current) {
           try {
             viewerRef.current.entities.remove(trackCoreEntityRef.current);
-          } catch (_) {}
+          } catch (_) { }
           trackCoreEntityRef.current = null;
         }
 
@@ -290,14 +291,29 @@ export default function CesiumView({
           return;
         }
 
-        // ✅ Use PolylineOutlineMaterialProperty for white outline + green core
+
+
+        // ✅ Shadow layer (dark, semi-transparent, widest)
+//        trackOutlineEntityRef.current = viewer.entities.add({
+//          polyline: {
+//            positions: positions,
+//            width: 11, // Wider than the main track
+//            material: Cesium.Color.fromCssColorString("rgba(0, 0, 0, 0.3)"), // Semi-transparent black
+//            clampToGround: clampToGround,
+//            classificationType: clampToGround
+//              ? Cesium.ClassificationType.TERRAIN
+//              : undefined,
+//          },
+//        });
+
+        // ✅ Main track with white outline + green core
         trackCoreEntityRef.current = viewer.entities.add({
           polyline: {
             positions: positions,
-            width: 8, // Total width
+            width: 10, // Total width
             material: new Cesium.PolylineOutlineMaterialProperty({
               color: Cesium.Color.fromCssColorString("#5ab887"), // Green core
-              outlineWidth: 1.5, // White outline thickness
+              outlineWidth: 3.5, // White outline thickness (adjust as needed)
               outlineColor: Cesium.Color.WHITE,
             }),
             clampToGround: clampToGround,
@@ -306,6 +322,7 @@ export default function CesiumView({
               : undefined,
           },
         });
+
 
         // ✅ Capture track positions for mile markers + cursor
         trackCoordsRef.current = positions;
@@ -349,7 +366,7 @@ export default function CesiumView({
       if (viewerRef.current) {
         try {
           viewerRef.current.destroy();
-        } catch (_) {}
+        } catch (_) { }
         viewerRef.current = null;
         dsRef.current = null;
       }
@@ -372,7 +389,7 @@ export default function CesiumView({
     return () => {
       try {
         ro.disconnect();
-      } catch (_) {}
+      } catch (_) { }
     };
   }, []);
 
@@ -385,7 +402,7 @@ export default function CesiumView({
     // Clear old markers
     try {
       mileMarkerEntitiesRef.current.forEach((ent) => viewer.entities.remove(ent));
-    } catch (_) {}
+    } catch (_) { }
     mileMarkerEntitiesRef.current = [];
 
     if (!showMileMarkers) {
@@ -482,7 +499,7 @@ export default function CesiumView({
         cursorEntityRef.current.label.text = `${Math.round(
           idx,
         )} • ${Math.round(elevFt)} ft`;
-      } catch (_) {}
+      } catch (_) { }
 
       viewer.scene.requestRender();
     } catch (e) {
