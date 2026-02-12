@@ -1,32 +1,47 @@
-import { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
-import L from 'leaflet';
-import DrawTrailMode from './DrawTrailMode';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useRef, useState } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  GeoJSON,
+  useMap,
+  Marker,
+  Popup,
+  Polyline,
+  CircleMarker,
+  LayersControl,
+} from "react-leaflet";
+import L from "leaflet";
+import DrawTrailMode from "./DrawTrailMode";
+import "leaflet/dist/leaflet.css";
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
 // Custom start marker icon (green)
 const startIcon = new L.Icon({
-  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+  iconUrl:
+    "data:image/svg+xml;base64," +
+    btoa(`
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#00e400" stroke="#000" stroke-width="1.5">
       <path d="M12 2L12 22M12 2L8 6M12 2L16 6"/>
     </svg>
   `),
   iconSize: [32, 32],
   iconAnchor: [16, 16],
-  popupAnchor: [0, -16]
+  popupAnchor: [0, -16],
 });
 
 // Custom finish marker icon (red)
 const finishIcon = new L.Icon({
-  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+  iconUrl:
+    "data:image/svg+xml;base64," +
+    btoa(`
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ff0000" stroke-width="2">
       <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
       <line x1="4" y1="22" x2="4" y2="15"/>
@@ -34,14 +49,13 @@ const finishIcon = new L.Icon({
   `),
   iconSize: [32, 32],
   iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
+  popupAnchor: [0, -32],
 });
-
 
 // Mile marker icon with number (white circle + green number)
 const mileMarkerIcon = (n) =>
   L.divIcon({
-    className: '', // important: prevent default leaflet styles
+    className: "", // important: prevent default leaflet styles
     html: `
       <div style="
         width: 26px;
@@ -65,7 +79,6 @@ const mileMarkerIcon = (n) =>
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   });
-
 
 // --- Shared math helpers (must be top-level so CursorMarker can use them) ---
 const toRad = (degrees) => degrees * (Math.PI / 180);
@@ -92,7 +105,7 @@ function CursorMarker({ position, track, index }) {
   if (!position || !track || index == null) return null;
 
   const coords =
-    track.geometry.type === 'LineString'
+    track.geometry.type === "LineString"
       ? track.geometry.coordinates
       : track.geometry.coordinates[0];
 
@@ -103,8 +116,10 @@ function CursorMarker({ position, track, index }) {
   for (let i = 1; i <= index; i++) {
     if (!coords[i] || !coords[i - 1]) break;
     distance += haversineDistance(
-      coords[i - 1][1], coords[i - 1][0],
-      coords[i][1], coords[i][0]
+      coords[i - 1][1],
+      coords[i - 1][0],
+      coords[i][1],
+      coords[i][0],
     );
   }
 
@@ -114,10 +129,10 @@ function CursorMarker({ position, track, index }) {
       radius={9}
       className="drop-shadow-md"
       pathOptions={{
-        color: '#ffffff',
-        fillColor: '#5ab887',
+        color: "#ffffff",
+        fillColor: "#5ab887",
         fillOpacity: 1,
-        weight: 3
+        weight: 3,
       }}
     >
       <Popup>
@@ -133,122 +148,158 @@ function CursorMarker({ position, track, index }) {
 }
 
 // Component to fit map bounds to all tracks or selected track
-function FitBounds({ bounds, selectedTrack, sidebarOpen, isSidebarCollapsed, trackListCollapsed }) {
+function FitBounds({
+  bounds,
+  selectedTrack,
+  sidebarOpen,
+  isSidebarCollapsed,
+  trackListCollapsed,
+}) {
   const map = useMap();
   const [hasInitialized, setHasInitialized] = useState(false);
   const [lastTrackId, setLastTrackId] = useState(null);
-  const [lastCollapseState, setLastCollapseState] = useState({ sidebar: isSidebarCollapsed, trackList: trackListCollapsed });
-  
+  const [lastCollapseState, setLastCollapseState] = useState({
+    sidebar: isSidebarCollapsed,
+    trackList: trackListCollapsed,
+  });
+
   useEffect(() => {
     const currentTrackId = selectedTrack?.properties?.id || null;
-    const collapseStateChanged = 
-      lastCollapseState.sidebar !== isSidebarCollapsed || 
+    const collapseStateChanged =
+      lastCollapseState.sidebar !== isSidebarCollapsed ||
       lastCollapseState.trackList !== trackListCollapsed;
-    
+
     // Recenter if:
     // 1. First load (!hasInitialized)
     // 2. Track changed (currentTrackId !== lastTrackId)
     // 3. Collapse state changed (sidebar or tracklist collapsed/expanded)
-    const shouldRecenter = !hasInitialized || currentTrackId !== lastTrackId || collapseStateChanged;
-    
+    const shouldRecenter =
+      !hasInitialized || currentTrackId !== lastTrackId || collapseStateChanged;
+
     if (!shouldRecenter) return;
-    
+
     // CRITICAL: Wait for CSS transitions to complete (300ms from CSS)
     // This ensures sidebars are fully opened/closed before recentering
     const recenterDelay = collapseStateChanged ? 350 : 0;
-    
+
     const recenterTimer = setTimeout(() => {
       if (selectedTrack) {
         // Fit to selected track only
-        const coords = selectedTrack.geometry.type === 'LineString'
-          ? selectedTrack.geometry.coordinates.map(coord => [coord[1], coord[0]])
-          : selectedTrack.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
-        
+        const coords =
+          selectedTrack.geometry.type === "LineString"
+            ? selectedTrack.geometry.coordinates.map((coord) => [
+                coord[1],
+                coord[0],
+              ])
+            : selectedTrack.geometry.coordinates[0].map((coord) => [
+                coord[1],
+                coord[0],
+              ]);
+
         const trackBounds = L.latLngBounds(coords);
-        
+
         // Calculate center of mass (geometric centroid) for better centering
         let sumLat = 0;
         let sumLng = 0;
-        coords.forEach(coord => {
+        coords.forEach((coord) => {
           sumLat += coord[0];
           sumLng += coord[1];
         });
-        const centerOfMass = L.latLng(sumLat / coords.length, sumLng / coords.length);
-        
+        const centerOfMass = L.latLng(
+          sumLat / coords.length,
+          sumLng / coords.length,
+        );
+
         // IMPROVED LOGIC: Calculate responsive padding based on ALL panel states
         const isMobile = window.innerWidth < 1024;
-        
+
         // Left padding: TrackList (desktop only, unless collapsed)
-        const paddingLeft = (!isMobile && !trackListCollapsed) ? 450 : 50;
-        
+        const paddingLeft = !isMobile && !trackListCollapsed ? 450 : 50;
+
         // Right padding: Sidebar (desktop only, unless collapsed)
-        const paddingRight = (!isMobile && sidebarOpen && !isSidebarCollapsed) ? 450 : 50;
-        
+        const paddingRight =
+          !isMobile && sidebarOpen && !isSidebarCollapsed ? 450 : 50;
+
         // Bottom padding: Mobile bottom sheet
-        const paddingBottom = (isMobile && sidebarOpen) ? 300 : 50;
-        
+        const paddingBottom = isMobile && sidebarOpen ? 300 : 50;
+
         // Calculate the viewport center offset to account for asymmetric padding
         const viewportWidth = map.getSize().x;
         const viewportHeight = map.getSize().y;
-        
+
         // Available map space (after subtracting sidebars)
         const availableWidth = viewportWidth - paddingLeft - paddingRight;
         const availableHeight = viewportHeight - 50 - paddingBottom;
-        
+
         // Calculate the pixel offset needed to center in the available space
         const offsetX = (paddingLeft - paddingRight) / 2;
         const offsetY = (50 - paddingBottom) / 2;
-        
+
         // Convert pixel offset to map coordinates
         const mapCenter = map.getCenter();
         const point = map.project(mapCenter, map.getZoom());
         point.x += offsetX;
         point.y += offsetY;
         const adjustedCenter = map.unproject(point, map.getZoom());
-        
+
         // First fit to bounds to get appropriate zoom level
-        map.fitBounds(trackBounds, { 
+        map.fitBounds(trackBounds, {
           paddingTopLeft: [paddingLeft, 50],
           paddingBottomRight: [paddingRight, paddingBottom],
           maxZoom: 14,
-          animate: collapseStateChanged // Animate only when sidebars change
+          animate: collapseStateChanged, // Animate only when sidebars change
         });
-        
+
         // Then adjust center to center of mass with offset compensation
         // Use a small delay to let fitBounds complete first
-        setTimeout(() => {
-          const currentZoom = map.getZoom();
-          const centerPoint = map.project(centerOfMass, currentZoom);
-          centerPoint.x -= offsetX;
-          centerPoint.y -= offsetY;
-          const finalCenter = map.unproject(centerPoint, currentZoom);
-          
-          map.setView(finalCenter, currentZoom, {
-            animate: collapseStateChanged,
-            duration: 0.3
-          });
-        }, collapseStateChanged ? 100 : 0);
-        
+        setTimeout(
+          () => {
+            const currentZoom = map.getZoom();
+            const centerPoint = map.project(centerOfMass, currentZoom);
+            centerPoint.x -= offsetX;
+            centerPoint.y -= offsetY;
+            const finalCenter = map.unproject(centerPoint, currentZoom);
+
+            map.setView(finalCenter, currentZoom, {
+              animate: collapseStateChanged,
+              duration: 0.3,
+            });
+          },
+          collapseStateChanged ? 100 : 0,
+        );
       } else if (bounds && bounds.length > 0) {
         // Fit to all tracks with symmetric padding
         const isMobile = window.innerWidth < 1024;
-        const paddingLeft = (!isMobile && !trackListCollapsed) ? 450 : 50;
-        
-        map.fitBounds(bounds, { 
+        const paddingLeft = !isMobile && !trackListCollapsed ? 450 : 50;
+
+        map.fitBounds(bounds, {
           paddingTopLeft: [paddingLeft, 50],
           paddingBottomRight: [50, 50],
-          animate: false
+          animate: false,
         });
       }
-      
+
       setHasInitialized(true);
       setLastTrackId(currentTrackId);
-      setLastCollapseState({ sidebar: isSidebarCollapsed, trackList: trackListCollapsed });
+      setLastCollapseState({
+        sidebar: isSidebarCollapsed,
+        trackList: trackListCollapsed,
+      });
     }, recenterDelay);
-    
+
     return () => clearTimeout(recenterTimer);
-  }, [selectedTrack, bounds, map, hasInitialized, lastTrackId, sidebarOpen, isSidebarCollapsed, trackListCollapsed, lastCollapseState]);
-  
+  }, [
+    selectedTrack,
+    bounds,
+    map,
+    hasInitialized,
+    lastTrackId,
+    sidebarOpen,
+    isSidebarCollapsed,
+    trackListCollapsed,
+    lastCollapseState,
+  ]);
+
   return null;
 }
 
@@ -268,176 +319,195 @@ export default function Map(props = {}) {
     drawMode,
     onSaveDrawnTrail,
     onCloseDrawMode,
-    theme
+    theme,
   } = props;
-  
+
   const mapRef = useRef();
-  
+
   // Debug logging
-  console.log('Map component received props:', props);
-  console.log('Map component received tracks:', tracks, 'length:', tracks?.length);
-  
+  console.log("Map component received props:", props);
+  console.log(
+    "Map component received tracks:",
+    tracks,
+    "length:",
+    tracks?.length,
+  );
+
   // Calculate mile markers for selected track
   const getMileMarkers = (track) => {
     if (!track || !showMileMarkers) return [];
-    
-    const coords = track.geometry.type === 'LineString' 
-      ? track.geometry.coordinates 
-      : track.geometry.coordinates[0];
-    
+
+    const coords =
+      track.geometry.type === "LineString"
+        ? track.geometry.coordinates
+        : track.geometry.coordinates[0];
+
     const markers = [];
     let totalDistance = 0;
     let nextMarkerDistance = 1; // First marker at 1 mile
-    
+
     markers.push({
       position: [coords[0][1], coords[0][0]],
-      distance: 0
+      distance: 0,
     });
-    
+
     for (let i = 1; i < coords.length; i++) {
       const dist = haversineDistance(
-        coords[i-1][1], coords[i-1][0],
-        coords[i][1], coords[i][0]
+        coords[i - 1][1],
+        coords[i - 1][0],
+        coords[i][1],
+        coords[i][0],
       );
       totalDistance += dist;
-      
+
       while (totalDistance >= nextMarkerDistance) {
         // Interpolate position for this mile marker
         const excess = totalDistance - nextMarkerDistance;
         const segmentDist = dist;
-        const ratio = 1 - (excess / segmentDist);
-        
-        const lat = coords[i-1][1] + (coords[i][1] - coords[i-1][1]) * ratio;
-        const lon = coords[i-1][0] + (coords[i][0] - coords[i-1][0]) * ratio;
-        
+        const ratio = 1 - excess / segmentDist;
+
+        const lat =
+          coords[i - 1][1] + (coords[i][1] - coords[i - 1][1]) * ratio;
+        const lon =
+          coords[i - 1][0] + (coords[i][0] - coords[i - 1][0]) * ratio;
+
         markers.push({
           position: [lat, lon],
-          distance: nextMarkerDistance
+          distance: nextMarkerDistance,
         });
-        
+
         nextMarkerDistance += 1;
       }
     }
-    
+
     return markers;
   };
-  
+
   const mileMarkers = selectedTrack ? getMileMarkers(selectedTrack) : [];
-  
+
   // Get start and finish positions
   const getStartFinishPositions = (track) => {
     if (!track || !showStartFinish) return { start: null, finish: null };
-    
-    const coords = track.geometry.type === 'LineString' 
-      ? track.geometry.coordinates 
-      : track.geometry.coordinates[0];
-    
+
+    const coords =
+      track.geometry.type === "LineString"
+        ? track.geometry.coordinates
+        : track.geometry.coordinates[0];
+
     return {
       start: [coords[0][1], coords[0][0]],
-      finish: [coords[coords.length - 1][1], coords[coords.length - 1][0]]
+      finish: [coords[coords.length - 1][1], coords[coords.length - 1][0]],
     };
   };
-  
-  const { start, finish } = selectedTrack ? getStartFinishPositions(selectedTrack) : { start: null, finish: null };
-  
+
+  const { start, finish } = selectedTrack
+    ? getStartFinishPositions(selectedTrack)
+    : { start: null, finish: null };
+
   // Handle map mousemove for cursor tracking
   const MapEventHandler = () => {
     const map = useMap();
-    
+
     useEffect(() => {
       if (!selectedTrack || !onMapHover) return;
-      
-      const coords = selectedTrack.geometry.type === 'LineString' 
-        ? selectedTrack.geometry.coordinates 
-        : selectedTrack.geometry.coordinates[0];
-      
+
+      const coords =
+        selectedTrack.geometry.type === "LineString"
+          ? selectedTrack.geometry.coordinates
+          : selectedTrack.geometry.coordinates[0];
+
       const handleMouseMove = (e) => {
         const clickedPoint = [e.latlng.lat, e.latlng.lng];
-        
+
         // Find closest point on track
         let minDist = Infinity;
         let closestIndex = 0;
-        
+
         for (let i = 0; i < coords.length; i++) {
           const dist = haversineDistance(
-            clickedPoint[0], clickedPoint[1],
-            coords[i][1], coords[i][0]
+            clickedPoint[0],
+            clickedPoint[1],
+            coords[i][1],
+            coords[i][0],
           );
           if (dist < minDist) {
             minDist = dist;
             closestIndex = i;
           }
         }
-        
+
         // Only trigger if within 0.1 miles of track
         if (minDist < 0.1) {
           onMapHover(closestIndex);
         }
       };
-      
-      map.on('mousemove', handleMouseMove);
-      
+
+      map.on("mousemove", handleMouseMove);
+
       return () => {
-        map.off('mousemove', handleMouseMove);
+        map.off("mousemove", handleMouseMove);
       };
     }, [map, selectedTrack, onMapHover]);
-    
+
     return null;
   };
-  
+
   // Calculate bounds for all tracks
   const getAllBounds = () => {
     if (!tracks || tracks.length === 0) return null;
-    
+
     // SAFETY: Filter out any tracks without geometry (stubs)
-    const validTracks = tracks.filter(track => track.geometry && track.geometry.coordinates);
-    
+    const validTracks = tracks.filter(
+      (track) => track.geometry && track.geometry.coordinates,
+    );
+
     if (validTracks.length === 0) return null;
-    
-    const allCoords = validTracks.flatMap(track => {
-      if (track.geometry.type === 'LineString') {
-        return track.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-      } else if (track.geometry.type === 'MultiLineString') {
-        return track.geometry.coordinates.flatMap(line =>
-          line.map(coord => [coord[1], coord[0]])
+
+    const allCoords = validTracks.flatMap((track) => {
+      if (track.geometry.type === "LineString") {
+        return track.geometry.coordinates.map((coord) => [coord[1], coord[0]]);
+      } else if (track.geometry.type === "MultiLineString") {
+        return track.geometry.coordinates.flatMap((line) =>
+          line.map((coord) => [coord[1], coord[0]]),
         );
       }
       return [];
     });
-    
+
     if (allCoords.length === 0) return null;
-    
+
     return L.latLngBounds(allCoords);
   };
 
   const bounds = getAllBounds();
   const center = bounds ? bounds.getCenter() : [34.1478, -118.1445]; // Default to LA area
-  
 
   // properties for the selected line
-  const SELECTED_TRACK_LINE_COLOR = '#5ab887';
-  const SELECTED_TRACK_OUTLINE_COLOR = '#ffffff';
+  const SELECTED_TRACK_LINE_COLOR = "#5ab887";
+  const SELECTED_TRACK_OUTLINE_COLOR = "#ffffff";
 
   const SELECTED_LINE_WEIGHT = 5;
   const SELECTED_OUTLINE_WEIGHT = 8;
 
+  const THUNDERFOREST_KEY = import.meta.env.VITE_THUNDERFOREST_API_KEY || "";
+  const TRACESTRACK_KEY = import.meta.env.VITE_TRACESTRACK_API_KEY || "";
 
   const getSelectedOutlineStyle = () => ({
     color: SELECTED_TRACK_OUTLINE_COLOR,
     weight: SELECTED_OUTLINE_WEIGHT,
     opacity: 1,
-    lineCap: 'round',
-    lineJoin: 'round',
-    className: 'selected-track-outline'
+    lineCap: "round",
+    lineJoin: "round",
+    className: "selected-track-outline",
   });
 
   const getSelectedCoreStyle = () => ({
     color: SELECTED_TRACK_LINE_COLOR,
     weight: SELECTED_LINE_WEIGHT,
     opacity: 1,
-    lineCap: 'round',
-    lineJoin: 'round',
-    className: 'selected-track-core'
+    lineCap: "round",
+    lineJoin: "round",
+    className: "selected-track-core",
   });
 
   // Style for non-selected tracks
@@ -449,11 +519,11 @@ export default function Map(props = {}) {
     if (isSelected) return { opacity: 0, weight: 0 };
 
     return {
-      color: '#8cd2ad',
+      color: "#8cd2ad",
       weight: 3,
       opacity: 0.7,
-      lineCap: 'round',
-      lineJoin: 'round'
+      lineCap: "round",
+      lineJoin: "round",
     };
   };
 
@@ -462,17 +532,23 @@ export default function Map(props = {}) {
     layer.on({
       click: () => onTrackClick(feature),
       mouseover: (e) => {
-        if (!selectedTrack || selectedTrack.properties.id !== feature.properties.id) {
-          e.target.setStyle({ color: '#5ab887', weight: 4, opacity: 0.9 });
+        if (
+          !selectedTrack ||
+          selectedTrack.properties.id !== feature.properties.id
+        ) {
+          e.target.setStyle({ color: "#5ab887", weight: 4, opacity: 0.9 });
         }
       },
       mouseout: (e) => {
-        if (!selectedTrack || selectedTrack.properties.id !== feature.properties.id) {
+        if (
+          !selectedTrack ||
+          selectedTrack.properties.id !== feature.properties.id
+        ) {
           e.target.setStyle(getTrackStyle(feature));
         }
-      }
+      },
     });
-    
+
     // Add popup
     if (feature.properties && feature.properties.name) {
       layer.bindPopup(`
@@ -490,17 +566,57 @@ export default function Map(props = {}) {
         className="h-full w-full rounded-lg border border-[var(--border-color)]"
         ref={mapRef}
       >
-        <TileLayer
-          attribution='© OpenStreetMap'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          className={theme === 'dark' ? 'brightness-115 contrast-105' : ''}
-        />
-        
+        <LayersControl position="topright">
+          <LayersControl.BaseLayer checked name="OSM Standard">
+            <TileLayer
+              attribution="© OpenStreetMap contributors"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              className={theme === "dark" ? "brightness-115 contrast-105" : ""}
+            />
+          </LayersControl.BaseLayer>
+
+          <LayersControl.BaseLayer name="CyclOSM">
+            <TileLayer
+              attribution="© OpenStreetMap contributors · CyclOSM"
+              url="https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"
+              className={theme === "dark" ? "brightness-115 contrast-105" : ""}
+            />
+          </LayersControl.BaseLayer>
+
+          {/* Cycle Map (Thunderforest) — only show if key is present */}
+          {THUNDERFOREST_KEY && (
+            <LayersControl.BaseLayer name="Cycle Map (Thunderforest)">
+              <TileLayer
+                attribution="Maps © Thunderforest · Data © OpenStreetMap contributors"
+                url={`https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=${THUNDERFOREST_KEY}`}
+                className={
+                  theme === "dark" ? "brightness-115 contrast-105" : ""
+                }
+              />
+            </LayersControl.BaseLayer>
+          )}
+
+          {/* Tracestrack Topo — only show if key is present */}
+          {TRACESTRACK_KEY && (
+            <LayersControl.BaseLayer name="Tracestrack Topo">
+              <TileLayer
+                attribution="© OpenStreetMap contributors · Tracestrack"
+                url={`https://tile.tracestrack.com/topo__/{z}/{x}/{y}.png?key=${TRACESTRACK_KEY}`}
+                className={
+                  theme === "dark" ? "brightness-115 contrast-105" : ""
+                }
+              />
+            </LayersControl.BaseLayer>
+          )}
+        </LayersControl>
 
         {/* Non-selected tracks */}
         {tracks
-          .filter(t => t.geometry && t.geometry.coordinates) // SAFETY: Skip stubs
-          .filter(t => !selectedTrack || t.properties.id !== selectedTrack.properties.id)
+          .filter((t) => t.geometry && t.geometry.coordinates) // SAFETY: Skip stubs
+          .filter(
+            (t) =>
+              !selectedTrack || t.properties.id !== selectedTrack.properties.id,
+          )
           .map((track) => (
             <GeoJSON
               key={track.properties.id}
@@ -527,13 +643,11 @@ export default function Map(props = {}) {
             />
           </>
         )}
-        
-        
+
         {/* Mile Markers (numbered) */}
         {mileMarkers
-          .filter(m => m.distance > 0) // skip 0; you already have a Start marker
+          .filter((m) => m.distance > 0) // skip 0; you already have a Start marker
           .map((marker) => (
-
             <Marker
               key={`mile-${marker.distance}`}
               position={marker.position}
@@ -548,53 +662,54 @@ export default function Map(props = {}) {
             </Marker>
           ))}
 
-          {/* Start Marker */}
-          {start && (
-            <Marker position={start} icon={startIcon}>
-              <Popup>
-                <div className="font-display font-semibold text-green-600">Trail Start</div>
-              </Popup>
-            </Marker>
-          )}
-          
-          {/* Finish Marker */}
-          {finish && (
-            <Marker position={finish} icon={finishIcon}>
-              <Popup>
-                <div className="font-display font-semibold text-red-600">Trail Finish</div>
-              </Popup>
-            </Marker>
-          )}
-          
-          {/* Cursor Position Marker */}
-          <CursorMarker
-            position={cursorPosition}
-            track={selectedTrack}
-            index={cursorIndex}
+        {/* Start Marker */}
+        {start && (
+          <Marker position={start} icon={startIcon}>
+            <Popup>
+              <div className="font-display font-semibold text-green-600">
+                Trail Start
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        {/* Finish Marker */}
+        {finish && (
+          <Marker position={finish} icon={finishIcon}>
+            <Popup>
+              <div className="font-display font-semibold text-red-600">
+                Trail Finish
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        {/* Cursor Position Marker */}
+        <CursorMarker
+          position={cursorPosition}
+          track={selectedTrack}
+          index={cursorIndex}
+        />
+
+        {/* Map Event Handler */}
+        <MapEventHandler />
+
+        {/* FitBounds with all required props */}
+        {bounds && (
+          <FitBounds
+            bounds={bounds}
+            selectedTrack={selectedTrack}
+            sidebarOpen={sidebarOpen}
+            isSidebarCollapsed={isSidebarCollapsed}
+            trackListCollapsed={trackListCollapsed}
           />
-          
-          {/* Map Event Handler */}
-          <MapEventHandler />
-          
-          {/* FitBounds with all required props */}
-          {bounds && (
-            <FitBounds 
-              bounds={bounds} 
-              selectedTrack={selectedTrack} 
-              sidebarOpen={sidebarOpen} 
-              isSidebarCollapsed={isSidebarCollapsed}
-              trackListCollapsed={trackListCollapsed}
-            />
-          )}
-          
-          {/* Draw Trail Mode */}
-          {drawMode && (
-            <DrawTrailMode
-              onSave={onSaveDrawnTrail}
-              onClose={onCloseDrawMode}
-            />
-          )}
-        </MapContainer>
-      </div>
-    );
+        )}
+
+        {/* Draw Trail Mode */}
+        {drawMode && (
+          <DrawTrailMode onSave={onSaveDrawnTrail} onClose={onCloseDrawMode} />
+        )}
+      </MapContainer>
+    </div>
+  );
 }
