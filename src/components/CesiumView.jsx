@@ -77,16 +77,16 @@ export default function CesiumView({
     return positions[positions.length - 1];
   }
 
-  // ✅ Helper to create Google Maps-style marker WITH TEXT BAKED IN AND GROUND SHADOW
+  // ✅ Helper to create Google Maps-style marker WITH TEXT BAKED IN
   function createPeakMarkerCanvas(name, elevText, showLabels) {
     const canvas = document.createElement("canvas");
     canvas.width = showLabels ? 200 : 48;
-    canvas.height = 64; // Reduced height since shadow will be separate billboard
+    canvas.height = 80; // Increased back to 80 to fit full pin
     const ctx = canvas.getContext("2d");
 
     // Draw the pin shape (inverted teardrop)
     const pinX = 24;
-    const pinY = 16;
+    const pinY = 20; // Position from top to avoid clipping
 
     ctx.beginPath();
     ctx.arc(pinX, pinY, 16, 0, 2 * Math.PI);
@@ -99,9 +99,9 @@ export default function CesiumView({
 
     // Draw the point
     ctx.beginPath();
-    ctx.moveTo(pinX, 32);
-    ctx.lineTo(pinX - 8, 44);
-    ctx.lineTo(pinX + 8, 44);
+    ctx.moveTo(pinX, 36);
+    ctx.lineTo(pinX - 8, 60); // Extended to reach bottom of canvas
+    ctx.lineTo(pinX + 8, 60);
     ctx.closePath();
     ctx.fillStyle = "#EA4335";
     ctx.fill();
@@ -118,7 +118,7 @@ export default function CesiumView({
     // Draw text label (if enabled)
     if (showLabels) {
       const textX = 56;
-      const textY = 20;
+      const textY = 24;
 
       ctx.font = "bold 14px sans-serif";
       ctx.lineWidth = 4;
@@ -648,11 +648,11 @@ export default function CesiumView({
             billboard: {
               image: createPeakMarkerCanvas(name, elevText, showPeakLabels),
               width: showPeakLabels ? 200 : 48,
-              height: 64,
-              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-              horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+              height: 80, // Match canvas height
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM, // Pin bottom touches ground
+              horizontalOrigin: Cesium.HorizontalOrigin.CENTER, // Center horizontally
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
-              pixelOffset: new Cesium.Cartesian2(-24, 0),
+              pixelOffset: new Cesium.Cartesian2(showPeakLabels ? 76 : 0, 0), // Offset text to the right
             },
           });
 
