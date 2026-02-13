@@ -23,7 +23,7 @@ export default function CesiumView({
   // ✅ NEW: optional cursor + mile markers controls
   cursorIndex = null,
   showMileMarkers = true,
-  
+
   // ✅ NEW: peaks data - array of {name, lat, lon, elevation}
   peaks = [],
 }) {
@@ -73,42 +73,74 @@ export default function CesiumView({
     }
     return positions[positions.length - 1];
   }
-  
+
   // ✅ NEW: Helper to create Google Maps-style marker
-  function createPeakMarkerCanvas() {
+
+  // ✅ NEW: Helper to create Google Maps-style marker WITH TEXT BAKED IN
+  function createPeakMarkerCanvas(name, elevText) {
     const canvas = document.createElement("canvas");
-    canvas.width = 48;
-    canvas.height = 64;
+    canvas.width = 200; // Wider to accommodate text
+    canvas.height = 80;
     const ctx = canvas.getContext("2d");
-    
-    // Draw the pin shape (inverted teardrop)
+
+    // Draw the pin shape (inverted teardrop) - positioned at left
+    const pinX = 24;
+    const pinY = 20;
+
     ctx.beginPath();
-    ctx.arc(24, 20, 16, 0, 2 * Math.PI); // Circle at top
+    ctx.arc(pinX, pinY, 16, 0, 2 * Math.PI); // Circle at top
     ctx.closePath();
     ctx.fillStyle = "#EA4335"; // Google Maps red
     ctx.fill();
     ctx.strokeStyle = "#B71C1C"; // Darker red border
     ctx.lineWidth = 2;
     ctx.stroke();
-    
+
     // Draw the point
     ctx.beginPath();
-    ctx.moveTo(24, 36);
-    ctx.lineTo(16, 48);
-    ctx.lineTo(32, 48);
+    ctx.moveTo(pinX, 36);
+    ctx.lineTo(pinX - 8, 48);
+    ctx.lineTo(pinX + 8, 48);
     ctx.closePath();
     ctx.fillStyle = "#EA4335";
     ctx.fill();
     ctx.strokeStyle = "#B71C1C";
     ctx.lineWidth = 2;
     ctx.stroke();
-    
+
     // Draw white circle in the middle
     ctx.beginPath();
-    ctx.arc(24, 20, 8, 0, 2 * Math.PI);
+    ctx.arc(pinX, pinY, 8, 0, 2 * Math.PI);
     ctx.fillStyle = "white";
     ctx.fill();
-    
+
+    // Draw text label to the right of the pin
+    const textX = 56; // Start text after pin
+    const textY = 24;
+
+    // Draw background for text
+    const nameWidth = ctx.measureText(name).width;
+    const elevWidth = elevText ? ctx.measureText(elevText).width : 0;
+    const maxWidth = Math.max(nameWidth, elevWidth);
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.fillRect(textX - 8, textY - 20, maxWidth + 16, 42);
+
+    // Draw name text
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillStyle = "white";
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 3;
+    ctx.strokeText(name, textX, textY);
+    ctx.fillText(name, textX, textY);
+
+    // Draw elevation text below name
+    if (elevText) {
+      ctx.font = "12px sans-serif";
+      ctx.strokeText(elevText, textX, textY + 16);
+      ctx.fillText(elevText, textX, textY + 16);
+    }
+
     return canvas;
   }
 
@@ -120,7 +152,7 @@ export default function CesiumView({
     // Also hide cursor immediately (no deletions)
     try {
       if (cursorEntityRef.current) cursorEntityRef.current.show = false;
-    } catch (_) {}
+    } catch (_) { }
 
     // Also clear mile markers immediately (no deletions)
     try {
@@ -132,7 +164,7 @@ export default function CesiumView({
         mileMarkerEntitiesRef.current = [];
         viewer.scene.requestRender();
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // Clear track core entity (we only use trackCoreEntityRef now)
     try {
@@ -144,7 +176,7 @@ export default function CesiumView({
         }
         viewer.scene.requestRender();
       }
-    } catch (_) {}
+    } catch (_) { }
   }, [geojsonUrl]);
 
   useEffect(() => {
@@ -256,7 +288,7 @@ export default function CesiumView({
             ) {
               // no-op; just confirms terrain provider exists
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         requestAnimationFrame(() => {
@@ -292,7 +324,7 @@ export default function CesiumView({
         if (dsRef.current && viewerRef.current) {
           try {
             viewerRef.current.dataSources.remove(dsRef.current, true);
-          } catch (_) {}
+          } catch (_) { }
           dsRef.current = null;
         }
 
@@ -300,7 +332,7 @@ export default function CesiumView({
         if (trackCoreEntityRef.current && viewerRef.current) {
           try {
             viewerRef.current.entities.remove(trackCoreEntityRef.current);
-          } catch (_) {}
+          } catch (_) { }
           trackCoreEntityRef.current = null;
         }
 
@@ -405,7 +437,7 @@ export default function CesiumView({
       if (viewerRef.current) {
         try {
           viewerRef.current.destroy();
-        } catch (_) {}
+        } catch (_) { }
         viewerRef.current = null;
         dsRef.current = null;
       }
@@ -428,11 +460,12 @@ export default function CesiumView({
     return () => {
       try {
         ro.disconnect();
-      } catch (_) {}
+      } catch (_) { }
     };
   }, []);
 
   // ✅ FIX: Restoration of visible numbers with Billboard + EyeOffset
+  // ✅ FIX: Render text directly on canvas to avoid z-fighting
   useEffect(() => {
     const viewer = viewerRef.current;
     const positions = trackCoordsRef.current;
@@ -443,7 +476,7 @@ export default function CesiumView({
       mileMarkerEntitiesRef.current.forEach((ent) =>
         viewer.entities.remove(ent),
       );
-    } catch (_) {}
+    } catch (_) { }
     mileMarkerEntitiesRef.current = [];
 
     if (!showMileMarkers) {
@@ -451,19 +484,29 @@ export default function CesiumView({
       return;
     }
 
-    // Helper to create the marker dot on the fly
-    const createCircleCanvas = (outlineColor, fill) => {
+    // Helper to create the marker with text baked into the canvas
+    const createMileMarkerCanvas = (mileNumber) => {
       const canvas = document.createElement("canvas");
       canvas.width = 64;
       canvas.height = 64;
       const ctx = canvas.getContext("2d");
+
+      // Draw circle background
       ctx.beginPath();
       ctx.arc(32, 32, 28, 0, 2 * Math.PI);
-      ctx.fillStyle = fill;
+      ctx.fillStyle = "white";
       ctx.fill();
       ctx.lineWidth = 4;
-      ctx.strokeStyle = outlineColor;
+      ctx.strokeStyle = "#5ab887"; // Green border
       ctx.stroke();
+
+      // Draw text on top
+      ctx.font = "bold 30px sans-serif";
+      ctx.fillStyle = "#1e6f4c"; // Green text
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(mileNumber), 32, 32);
+
       return canvas;
     };
 
@@ -481,29 +524,14 @@ export default function CesiumView({
 
         const ent = viewer.entities.add({
           position: pos,
-          // Use Billboard for the dot to prevent it from "fighting" with the text
           billboard: {
-            image: createCircleCanvas("#5ab887", "white"),
+            image: createMileMarkerCanvas(m), // Text baked into canvas
             width: 26,
             height: 26,
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
-          label: {
-            text: String(m),
-            font: "bold 14px sans-serif",
-            fillColor: Cesium.Color.fromCssColorString("#1e6f4c"),
-            outlineColor: Cesium.Color.WHITE,
-            outlineWidth: 3,
-            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-            // Centering logic
-            horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-            verticalOrigin: Cesium.VerticalOrigin.CENTER,
-            // Nudge toward camera (Z-axis) so it's always on top of the billboard
-            eyeOffset: new Cesium.Cartesian3(0, 0, -50),
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          },
+          // NO LABEL - text is part of the billboard now
         });
 
         mileMarkerEntitiesRef.current.push(ent);
@@ -514,7 +542,8 @@ export default function CesiumView({
       console.warn("Failed to build mile markers:", e);
     }
   }, [showMileMarkers, geojsonUrl, trackPositionsTick]);
-  
+
+
   // ✅ NEW: Peak markers effect
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -526,7 +555,7 @@ export default function CesiumView({
     // Clear old peak markers
     try {
       peakEntitiesRef.current.forEach((ent) => viewer.entities.remove(ent));
-    } catch (_) {}
+    } catch (_) { }
     peakEntitiesRef.current = [];
 
     if (!peaks || peaks.length === 0) {
@@ -540,22 +569,22 @@ export default function CesiumView({
     const addPeaksWithTerrain = async () => {
       try {
         // Sample terrain heights for each peak
-        const positions = peaks.map(peak => 
+        const positions = peaks.map(peak =>
           Cesium.Cartographic.fromDegrees(peak.lon, peak.lat)
         );
-        
+
         // Try to get terrain heights, but continue if it fails
         try {
           await Cesium.sampleTerrainMostDetailed(viewer.terrainProvider, positions);
         } catch (terrainError) {
           console.warn('Terrain sampling failed, using ground level:', terrainError);
         }
-        
+
         peaks.forEach((peak, index) => {
           const { name, lat, lon, elevation } = peak;
-          
+
           console.log(`Adding peak: ${name} at ${lat}, ${lon}`);
-          
+
           // Use the terrain-sampled height, or 0 if sampling failed
           const terrainHeight = positions[index].height || 0;
           const position = Cesium.Cartesian3.fromRadians(
@@ -563,37 +592,24 @@ export default function CesiumView({
             positions[index].latitude,
             terrainHeight
           );
-          
+
+          // Format elevation (assume it's in feet, or convert as needed)
           // Format elevation (assume it's in feet, or convert as needed)
           const elevText = elevation ? `${Math.round(elevation).toLocaleString()} ft` : '';
-          
+
           const ent = viewer.entities.add({
             position: position,
             billboard: {
-              image: createPeakMarkerCanvas(),
-              width: 48,
-              height: 64,
+              image: createPeakMarkerCanvas(name, elevText), // Text baked into canvas
+              width: 200,
+              height: 80,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-              horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
-            },
-            label: {
-              text: `${name}\n${elevText}`,
-              font: "bold 14px sans-serif",
-              fillColor: Cesium.Color.WHITE,
-              outlineColor: Cesium.Color.BLACK,
-              outlineWidth: 3,
-              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-              pixelOffset: new Cesium.Cartesian2(28, -10),
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
-              showBackground: true,
-              backgroundColor: Cesium.Color.fromCssColorString("rgba(0, 0, 0, 0.7)"),
-              backgroundPadding: new Cesium.Cartesian2(8, 4),
+              pixelOffset: new Cesium.Cartesian2(-24, 0), // Adjust so pin is centered at position
             },
+            // NO LABEL - text is part of the billboard now
           });
-
           peakEntitiesRef.current.push(ent);
           console.log('Peak entity added:', ent);
         });
@@ -604,11 +620,11 @@ export default function CesiumView({
         console.error("Failed to build peak markers:", e);
       }
     };
-    
+
     // Add delay to ensure everything is initialized
     setTimeout(addPeaksWithTerrain, 1000);
   }, [peaks]);
-  
+
   // ✅ NEW: cursor entity driven by cursorIndex (hook up to your graph hover)
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -656,7 +672,7 @@ export default function CesiumView({
         cursorEntityRef.current.label.text = `${Math.round(
           idx,
         )} • ${Math.round(elevFt)} ft`;
-      } catch (_) {}
+      } catch (_) { }
 
       viewer.scene.requestRender();
     } catch (e) {
