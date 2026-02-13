@@ -49,6 +49,14 @@
       "elevationGain": 9062
     },
     {
+      "file": "MtWilson_Occidental_Disappointment_Lowe_12.geojson",
+      "name": "Mt. Wilson Occidental Disappointment Lowe and back 12",
+      "location": "San Gabriel Mountains, LA County, CA",
+      "description": "",
+      "distance": 12.04,
+      "elevationGain": 2664
+    },
+    {
       "file": "Palm2Lukens_14.geojson",
       "name": "Palm Drive to Mt. Lukens Peak 14",
       "location": "Mt. Lukens, Los Angeles, CA",
