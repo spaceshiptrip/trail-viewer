@@ -71,16 +71,15 @@
     "lon": -119.0326,
     "elevation": 11059
   },
-
   {
     "name": "Iron Mountain",
-    "lat": 34.2884113, 
+    "lat": 34.2884113,
     "lon": -117.7133208,
     "elevation": 7938
   },
   {
     "name": "Sunset Peak",
-    "lat": 34.2166660, 
+    "lat": 34.216666,
     "lon": -117.6893287,
     "elevation": 5653
   },
@@ -92,21 +91,26 @@
   },
   {
     "name": "Santiago Peak",
-    "lat":  33.7105507, 
+    "lat": 33.7105507,
     "lon": -117.5342257,
     "elevation": 5689
   },
   {
     "name": "Mount Pinos",
-    "lat": 34.8128180, 
+    "lat": 34.812818,
     "lon": -119.1453967,
     "elevation": 8847
   },
   {
     "name": "Mount Orizaba",
-    "lat": 33.3769725, 
+    "lat": 33.3769725,
     "lon": -118.4181319,
     "elevation": 2096
+  },
+  {
+    "name": "Saddle Peak",
+    "lat": 34.0780264, 
+    "lon": -118.6550579,
+    "elevation": 2791
   }
-
 ]
