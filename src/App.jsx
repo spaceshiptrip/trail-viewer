@@ -40,6 +40,13 @@ function App() {
   // ✅ NEW: peaks data for 3D view
   const [peaks, setPeaks] = useState([]);
 
+
+  // ✅ NEW: Peak display settings
+  const [showPeaks, setShowPeaks] = useState(() => localStorage.getItem("showPeaks") !== "false");
+  const [showPeakLabels, setShowPeakLabels] = useState(() => localStorage.getItem("showPeakLabels") !== "false");
+  const [peakRadius, setPeakRadius] = useState(() => Number(localStorage.getItem("peakRadius")) || 10); // miles
+  const [showSettings, setShowSettings] = useState(false);
+
   // ✅ Ensure Leaflet always receives the selectedTrack in its "tracks" list
   const leafletTracks = (() => {
     const arr = Object.values(trackCache || {});
@@ -123,6 +130,18 @@ function App() {
 
     loadPeaks();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("showPeaks", showPeaks);
+  }, [showPeaks]);
+
+  useEffect(() => {
+    localStorage.setItem("showPeakLabels", showPeakLabels);
+  }, [showPeakLabels]);
+
+  useEffect(() => {
+    localStorage.setItem("peakRadius", peakRadius);
+  }, [peakRadius]);
 
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === "dark" ? "light" : "dark"));
@@ -472,15 +491,14 @@ function App() {
         </button>
       )}
 
-      {/* ✅ NEW: 2D / 3D Toggle (center-top) */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1005] flex gap-2">
+      {/* ✅ NEW: 2D / 3D Toggle + Settings (center-top) */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1005] flex gap-2 items-center">
         <button
           onClick={() => setMapMode("2d")}
           className={`px-3 py-2 rounded-lg border text-sm shadow
-            ${
-              mapMode === "2d"
-                ? "bg-[var(--accent-primary)] text-black border-transparent"
-                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
+            ${mapMode === "2d"
+              ? "bg-[var(--accent-primary)] text-black border-transparent"
+              : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
             }`}
           title="2D Leaflet"
         >
@@ -490,15 +508,75 @@ function App() {
         <button
           onClick={() => setMapMode("3d")}
           className={`px-3 py-2 rounded-lg border text-sm shadow
-            ${
-              mapMode === "3d"
-                ? "bg-[var(--accent-primary)] text-black border-transparent"
-                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
+            ${mapMode === "3d"
+              ? "bg-[var(--accent-primary)] text-black border-transparent"
+              : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
             }`}
           title="3D Terrain"
         >
           3D
         </button>
+
+        {/* Settings button - only show in 3D mode */}
+        {mapMode === "3d" && (
+          <div className="relative">
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="p-2 rounded-lg border bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110 shadow"
+              title="Settings"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+              </svg>
+            </button>
+
+            {/* Settings dropdown */}
+            {showSettings && (
+              <div className="absolute top-12 right-0 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-lg p-3 min-w-[220px]">
+                <div className="space-y-3">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-sm text-[var(--text-primary)]">Show Peaks</span>
+                    <input
+                      type="checkbox"
+                      checked={showPeaks}
+                      onChange={(e) => setShowPeaks(e.target.checked)}
+                      className="ml-2"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between cursor-pointer" style={{ opacity: showPeaks ? 1 : 0.5, pointerEvents: showPeaks ? 'auto' : 'none' }}>
+                    <span className="text-sm text-[var(--text-primary)]">Show Peak Labels</span>
+                    <input
+                      type="checkbox"
+                      checked={showPeakLabels}
+                      onChange={(e) => setShowPeakLabels(e.target.checked)}
+                      disabled={!showPeaks}
+                      className="ml-2"
+                    />
+                  </label>
+
+                  <div style={{ opacity: showPeaks ? 1 : 0.5, pointerEvents: showPeaks ? 'auto' : 'none' }}>
+                    <label className="block text-sm text-[var(--text-primary)] mb-1">
+                      Peak Radius: {peakRadius} mi
+                    </label>
+                    <input
+                      type="range"
+                      min="5"
+                      max="50"
+                      step="5"
+                      value={peakRadius}
+                      onChange={(e) => setPeakRadius(Number(e.target.value))}
+                      disabled={!showPeaks}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 relative h-full">
@@ -532,6 +610,9 @@ function App() {
             showMileMarkers={showMileMarkers}
             cursorIndex={graphHoverIndex}
             peaks={peaks}
+            showPeaks={showPeaks}
+            showPeakLabels={showPeakLabels}
+            peakRadius={peakRadius}
             style={{ width: "100%", height: "100%" }}
           />
         )}
