@@ -99,9 +99,17 @@ export default function CesiumView({
 
     // Draw the point
     ctx.beginPath();
-    ctx.moveTo(pinX, 36);
-    ctx.lineTo(pinX - 8, 60); // Extended to reach bottom of canvas
-    ctx.lineTo(pinX + 8, 60);
+//    ctx.moveTo(pinX, 36);
+//    ctx.lineTo(pinX - 8, 60); // Extended to reach bottom of canvas
+//    ctx.lineTo(pinX + 8, 60);
+
+    ctx.moveTo(pinX + 8, 36);
+    ctx.lineTo(pinX, 55);
+    ctx.lineTo(pinX - 8, 36);
+
+//    ctx.moveTo(36, pinX);
+//    ctx.lineTo(60, pinX - 8); // Extended to reach bottom of canvas
+//    ctx.lineTo(60, pinX + 8);
     ctx.closePath();
     ctx.fillStyle = "#EA4335";
     ctx.fill();
