@@ -564,7 +564,7 @@ function App() {
                     <input
                       type="range"
                       min="5"
-                      max="50"
+                      max="100"
                       step="5"
                       value={peakRadius}
                       onChange={(e) => setPeakRadius(Number(e.target.value))}
