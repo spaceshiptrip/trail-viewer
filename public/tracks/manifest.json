@@ -33,6 +33,22 @@
       "elevationGain": 4904
     },
     {
+      "file": "MtDisappointment25k.geojson",
+      "name": "Mount Disappointment Trail Race 25k",
+      "location": "San Gabriel Mountains, LA County, CA",
+      "description": "Mt. Disappointment (5,963-ft) named in 1894 when surveyors thought it was the highest point, only to find nearby San Gabriel Peak was taller.",
+      "distance": 15.22,
+      "elevationGain": 4860
+    },
+    {
+      "file": "MtDisappointmentRace50k.geojson",
+      "name": "Mt. Disappointment Trail Race - 50k",
+      "location": "San Gabriel Mountains, LA County, CA",
+      "description": "Figure 8 from Wilson to Disappointment (5,963-ft) around Strawberry Peak and Lawler.",
+      "distance": 30.58,
+      "elevationGain": 9062
+    },
+    {
       "file": "Palm2Lukens_14.geojson",
       "name": "Palm Drive to Mt. Lukens Peak 14",
       "location": "Mt. Lukens, Los Angeles, CA",
