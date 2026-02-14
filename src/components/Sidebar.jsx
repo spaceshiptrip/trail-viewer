@@ -185,6 +185,24 @@ export default function Sidebar({
     return calculateGradePerPoint(coords);
   }, [coords]);
 
+  const gradeAtDistance = (distMi) => {
+    if (!elevationProfile?.length) return null;
+
+    // Find nearest point by distance
+    let bestIdx = 0;
+    let bestDelta = Infinity;
+    for (let i = 0; i < elevationProfile.length; i++) {
+      const d = Math.abs(elevationProfile[i].distance - distMi);
+      if (d < bestDelta) {
+        bestDelta = d;
+        bestIdx = i;
+      }
+    }
+
+    const g = gradePerPoint?.[bestIdx];
+    return typeof g === "number" ? g : null;
+  };
+
   const gradeColors = useMemo(() => {
     return gradePerPoint.map((g) => gradeColorForPct(g));
   }, [gradePerPoint]);
@@ -199,35 +217,33 @@ export default function Sidebar({
   const renderGradeOverlay = (rechartsProps) => {
     if (!showGradeOverlay) return null;
 
-    const xAxis = rechartsProps?.xAxisMap
-      ? Object.values(rechartsProps.xAxisMap)[0]
-      : null;
-    const yAxis = rechartsProps?.yAxisMap
-      ? Object.values(rechartsProps.yAxisMap)[0]
-      : null;
-    const offset = rechartsProps?.offset;
+    // Recharts provides the already-laid-out points for the Line(s)
+    const items = rechartsProps?.formattedGraphicalItems || [];
 
-    const xScale = xAxis?.scale;
-    const yScale = yAxis?.scale;
+    // Find the elevation Line item (dataKey === "elevation")
+    const elevItem =
+      items.find((it) => it?.props?.dataKey === "elevation") ||
+      items.find((it) => it?.item?.props?.dataKey === "elevation") ||
+      null;
 
-    if (!xScale || !yScale || !offset) return null;
-    if (!elevationProfile || elevationProfile.length < 2) return null;
+    const points =
+      elevItem?.props?.points || elevItem?.item?.props?.points || null;
 
-    const left = offset.left;
-    const top = offset.top;
+    if (!points || points.length < 2) return null;
 
     const segs = [];
-    for (let i = 1; i < elevationProfile.length; i++) {
-      const p0 = elevationProfile[i - 1];
-      const p1 = elevationProfile[i];
 
-      // x is distance (mi), y is elevation (ft) per your existing chart
-      const x0 = xScale(p0.distance);
-      const y0 = yScale(p0.elevation);
-      const x1 = xScale(p1.distance);
-      const y1 = yScale(p1.elevation);
+    for (let i = 1; i < points.length; i++) {
+      const p0 = points[i - 1];
+      const p1 = points[i];
 
-      // Use grade color for segment end (similar to GPX3DPlotter segment coloring)
+      const x0 = Number(p0?.x);
+      const y0 = Number(p0?.y);
+      const x1 = Number(p1?.x);
+      const y1 = Number(p1?.y);
+
+      if (![x0, y0, x1, y1].every(Number.isFinite)) continue;
+
       const stroke = gradeColors[i] || "var(--accent-primary)";
 
       segs.push(
@@ -463,6 +479,7 @@ export default function Sidebar({
                         }}
                         tickFormatter={(value) => Math.round(value)}
                       />
+
                       <Tooltip
                         contentStyle={{
                           backgroundColor: "var(--bg-secondary)",
@@ -470,11 +487,33 @@ export default function Sidebar({
                           borderRadius: "8px",
                           color: "var(--text-primary)",
                         }}
-                        formatter={(value) => [
-                          `${Math.round(value)} ft`,
-                          "Elevation",
-                        ]}
+                        // title line: miles (unchanged)
                         labelFormatter={(value) => `${value.toFixed(2)} mi`}
+                        // body lines: elevation (+ grade if overlay enabled)
+                        formatter={(value, name, payload) => {
+                          // For the elevation line, `value` is elevation.
+                          const elevationFt = Math.round(value);
+
+                          if (!showGradeOverlay) {
+                            return [`${elevationFt} ft`, "Elevation"];
+                          }
+
+                          // When overlay is on, include grade %
+                          const distMi = payload?.payload?.distance;
+                          const g =
+                            typeof distMi === "number"
+                              ? gradeAtDistance(distMi)
+                              : null;
+                          const gradeStr =
+                            typeof g === "number" ? `${g.toFixed(1)}%` : "—";
+
+                          // Recharts Tooltip expects an array of [value, name] pairs when returning arrays,
+                          // but its "formatter" runs per item. We can return a multiline string value.
+                          return [
+                            `${elevationFt} ft\n${gradeStr}`,
+                            "Elevation / Grade",
+                          ];
+                        }}
                       />
                       <Line
                         type="monotone"
