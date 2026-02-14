@@ -1,45 +1,85 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
-import { Mountain, TrendingUp, MapPin, Cloud, Wind, Droplets, Calendar, Activity, Share2, Download, Zap } from 'lucide-react';
-import { getElevationProfile, fetchWeather, fetchAQI, calculateEquivalentFlatDistance, calculateClimbFactor } from '../utils';
-
+import { useState, useEffect, useRef, useMemo } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceDot,
+  Customized,
+} from "recharts";
+import {
+  Mountain,
+  TrendingUp,
+  MapPin,
+  Cloud,
+  Wind,
+  Droplets,
+  Calendar,
+  Activity,
+  Share2,
+  Download,
+  Zap,
+} from "lucide-react";
+import {
+  getElevationProfile,
+  fetchWeather,
+  fetchAQI,
+  calculateEquivalentFlatDistance,
+  calculateClimbFactor,
+  calculateGradePerPoint,
+  gradeColorForPct,
+} from "../utils";
 
 function gpxUrlForTrack(track) {
   const file = track?.file;
   const name = track?.properties?.name;
 
   if (file) {
-    return `${import.meta.env.BASE_URL}tracks/gpx/${file.replace('.geojson', '.gpx')}`;
+    return `${import.meta.env.BASE_URL}tracks/gpx/${file.replace(".geojson", ".gpx")}`;
   }
 
   if (name) {
     return `${import.meta.env.BASE_URL}tracks/gpx/${encodeURIComponent(name)}.gpx`;
   }
 
-  return '#';
+  return "#";
 }
 
-export default function Sidebar({ track, onClose, onCursorPosition, mapHoverIndex }) {
+export default function Sidebar({
+  track,
+  onClose,
+  onCursorPosition,
+  mapHoverIndex,
+}) {
   const [weather, setWeather] = useState(null);
   const [aqi, setAqi] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
   const [loadingAQI, setLoadingAQI] = useState(false);
   const [hoveredPoint, setHoveredPoint] = useState(null);
-  const [snapState, setSnapState] = useState('minimized'); // 'minimized', 'mid', 'full'
+  const [snapState, setSnapState] = useState("minimized"); // 'minimized', 'mid', 'full'
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showGradeOverlay, setShowGradeOverlay] = useState(false); // default OFF
+  const [gradeMenuOpen, setGradeMenuOpen] = useState(false);
+  const [sortGradeMetrics, setSortGradeMetrics] = useState(false); // default OFF
+
+  const gradeMenuRef = useRef(null);
   const profileRef = useRef(null);
 
   // Calculate equivalent flat distance and climb factor
   const { equivalentDistance, climbFactor } = useMemo(() => {
     if (!track) return { equivalentDistance: 0, climbFactor: 0 };
-    
-    const coords = track.geometry.type === 'LineString'
-      ? track.geometry.coordinates
-      : track.geometry.coordinates[0];
-    
+
+    const coords =
+      track.geometry.type === "LineString"
+        ? track.geometry.coordinates
+        : track.geometry.coordinates[0];
+
     return {
       equivalentDistance: calculateEquivalentFlatDistance(coords),
-      climbFactor: calculateClimbFactor(coords)
+      climbFactor: calculateClimbFactor(coords),
     };
   }, [track]);
 
@@ -62,7 +102,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
 
   const handleCopyLink = () => {
     const url = new URL(window.location.href);
-    url.searchParams.set('track', track.properties.id);
+    url.searchParams.set("track", track.properties.id);
     navigator.clipboard.writeText(url.toString()).then(() => {
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
@@ -70,9 +110,9 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
   };
 
   const cycleSnapState = () => {
-    if (snapState === 'minimized') setSnapState('mid');
-    else if (snapState === 'mid') setSnapState('full');
-    else setSnapState('minimized');
+    if (snapState === "minimized") setSnapState("mid");
+    else if (snapState === "mid") setSnapState("full");
+    else setSnapState("minimized");
   };
 
   useEffect(() => {
@@ -80,13 +120,18 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
       setLoadingWeather(true);
       setLoadingAQI(true);
 
-      const center = track.geometry.type === 'LineString'
-        ? track.geometry.coordinates[Math.floor(track.geometry.coordinates.length / 2)]
-        : track.geometry.coordinates[0][Math.floor(track.geometry.coordinates[0].length / 2)];
+      const center =
+        track.geometry.type === "LineString"
+          ? track.geometry.coordinates[
+              Math.floor(track.geometry.coordinates.length / 2)
+            ]
+          : track.geometry.coordinates[0][
+              Math.floor(track.geometry.coordinates[0].length / 2)
+            ];
 
       // Fetch weather
       fetchWeather(center[1], center[0])
-        .then(data => {
+        .then((data) => {
           setWeather(data);
           setLoadingWeather(false);
         })
@@ -94,7 +139,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
 
       // Fetch AQI
       fetchAQI(center[1], center[0])
-        .then(data => {
+        .then((data) => {
           setAqi(data);
           setLoadingAQI(false);
         })
@@ -105,34 +150,267 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
   if (!track) return null;
 
   useEffect(() => {
-    if (snapState === 'mid' && profileRef.current) {
-      profileRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (snapState === "mid" && profileRef.current) {
+      profileRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [snapState]);
 
-  const coords = track.geometry.type === 'LineString'
-    ? track.geometry.coordinates
-    : track.geometry.coordinates[0];
+  useEffect(() => {
+    if (!gradeMenuOpen) return;
+
+    const onDown = (e) => {
+      if (gradeMenuRef.current && !gradeMenuRef.current.contains(e.target)) {
+        setGradeMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+    };
+  }, [gradeMenuOpen]);
+
+  const coords =
+    track.geometry.type === "LineString"
+      ? track.geometry.coordinates
+      : track.geometry.coordinates[0];
 
   const elevationProfile = getElevationProfile(coords);
-  const hasElevation = elevationProfile.length > 0 && elevationProfile[0].elevation !== 0;
+  const hasElevation =
+    elevationProfile.length > 0 && elevationProfile[0].elevation !== 0;
+
+  const gradePerPoint = useMemo(() => {
+    // aligned to coords; sidebar elevationProfile is expected to match indexing
+    return calculateGradePerPoint(coords);
+  }, [coords]);
+
+  // --- Grade bins (match GPX3DPlotter color thresholds) ---
+  const GRADE_BINS = useMemo(
+    () => [
+      { key: "g25", label: "≥ 25%", min: 25, max: Infinity, color: "#ff0000" },
+      { key: "g20", label: "20–24.9%", min: 20, max: 25, color: "#ff6600" },
+      { key: "g15", label: "15–19.9%", min: 15, max: 20, color: "#ff9900" },
+      { key: "g10", label: "10–14.9%", min: 10, max: 15, color: "#ffcc00" },
+      { key: "g5", label: "5–9.9%", min: 5, max: 10, color: "#ccff00" },
+      { key: "g0", label: "0–4.9%", min: 0, max: 5, color: "#00ff00" },
+      { key: "gm5", label: "-5–-0.1%", min: -5, max: 0, color: "#00ccff" },
+      { key: "gm10", label: "-10–-5.1%", min: -10, max: -5, color: "#3399ff" },
+      {
+        key: "gmInf",
+        label: "< -10%",
+        min: -Infinity,
+        max: -10,
+        color: "#6666ff",
+      },
+    ],
+    [],
+  );
+
+  const haversineMeters = (a, b) => {
+    // coords are [lon, lat, ele]
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const R = 6371e3;
+    const lat1 = toRad(a[1]);
+    const lat2 = toRad(b[1]);
+    const dLat = toRad(b[1] - a[1]);
+    const dLon = toRad(b[0] - a[0]);
+    const s =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+  };
+
+  const gradeMetrics = useMemo(() => {
+    if (!coords || coords.length < 2) return null;
+    if (!gradePerPoint || gradePerPoint.length !== coords.length) return null;
+
+    const sumsMeters = Object.fromEntries(GRADE_BINS.map((b) => [b.key, 0]));
+    let totalMeters = 0;
+
+    const binForGrade = (g) => {
+      for (const b of GRADE_BINS) {
+        if (g >= b.min && g < b.max) return b;
+      }
+      return GRADE_BINS[GRADE_BINS.length - 1];
+    };
+
+    for (let i = 1; i < coords.length; i++) {
+      const segMeters = haversineMeters(coords[i - 1], coords[i]);
+      if (!Number.isFinite(segMeters) || segMeters <= 0) continue;
+
+      // use grade assigned to point i (segment end), consistent with your overlay
+      const g = Number(gradePerPoint[i] ?? 0);
+      const b = binForGrade(g);
+
+      sumsMeters[b.key] += segMeters;
+      totalMeters += segMeters;
+    }
+
+    if (totalMeters <= 0) return null;
+
+    const metersToMi = (m) => m / 1609.34;
+
+    const rows = GRADE_BINS.map((b) => {
+      const m = sumsMeters[b.key] || 0;
+      const mi = metersToMi(m);
+      const pct = (m / totalMeters) * 100;
+      return {
+        ...b,
+        meters: m,
+        miles: mi,
+        percent: pct,
+      };
+    });
+
+    return {
+      totalMiles: metersToMi(totalMeters),
+      rows,
+    };
+  }, [coords, gradePerPoint, GRADE_BINS]);
+
+  const gradeMetricsRows = useMemo(() => {
+    if (!gradeMetrics?.rows) return [];
+    if (!sortGradeMetrics) return gradeMetrics.rows; // legend order
+
+    // Sort by distance (miles) desc; tie-break by percent desc
+    return [...gradeMetrics.rows].sort((a, b) => {
+      if (b.miles !== a.miles) return b.miles - a.miles;
+      return (b.percent || 0) - (a.percent || 0);
+    });
+  }, [gradeMetrics, sortGradeMetrics]);
+
+  const gradeAtDistance = (distMi) => {
+    if (!elevationProfile?.length) return null;
+
+    // Find nearest point by distance
+    let bestIdx = 0;
+    let bestDelta = Infinity;
+    for (let i = 0; i < elevationProfile.length; i++) {
+      const d = Math.abs(elevationProfile[i].distance - distMi);
+      if (d < bestDelta) {
+        bestDelta = d;
+        bestIdx = i;
+      }
+    }
+
+    const g = gradePerPoint?.[bestIdx];
+    return typeof g === "number" ? g : null;
+  };
+
+  const gradeColors = useMemo(() => {
+    return gradePerPoint.map((g) => gradeColorForPct(g));
+  }, [gradePerPoint]);
 
   // Calculate height based on snap state
   const getHeight = () => {
-    if (snapState === 'minimized') return 'h-[80px]';
-    if (snapState === 'mid') return 'h-[330px]';
-    return 'h-[85vh]';
+    if (snapState === "minimized") return "h-[80px]";
+    if (snapState === "mid") return "h-[330px]";
+    return "h-[85vh]";
+  };
+
+  const hexToRgba = (hex, a = 0.22) => {
+    if (!hex) return `rgba(0,0,0,${a})`;
+    const h = hex.replace("#", "").trim();
+    const full =
+      h.length === 3
+        ? h
+            .split("")
+            .map((c) => c + c)
+            .join("")
+        : h;
+    const n = parseInt(full, 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return `rgba(${r},${g},${b},${a})`;
+  };
+
+  const renderGradeOverlay = (rechartsProps) => {
+    if (!showGradeOverlay) return null;
+
+    const items = rechartsProps?.formattedGraphicalItems || [];
+
+    const elevItem =
+      items.find((it) => it?.props?.dataKey === "elevation") ||
+      items.find((it) => it?.item?.props?.dataKey === "elevation") ||
+      null;
+
+    const points =
+      elevItem?.props?.points || elevItem?.item?.props?.points || null;
+
+    const offset = rechartsProps?.offset;
+    if (!points || points.length < 2 || !offset) return null;
+
+    // ✅ Chart baseline (x-axis) in pixels
+    const baselineY = offset.top + offset.height;
+
+    const fills = [];
+    const lines = [];
+
+    for (let i = 1; i < points.length; i++) {
+      const p0 = points[i - 1];
+      const p1 = points[i];
+
+      const x0 = Number(p0?.x);
+      const y0 = Number(p0?.y);
+      const x1 = Number(p1?.x);
+      const y1 = Number(p1?.y);
+
+      if (![x0, y0, x1, y1, baselineY].every(Number.isFinite)) continue;
+
+      const stroke = gradeColors[i] || "var(--accent-primary)";
+      const fill = hexToRgba(stroke, 0.2); // tweak alpha here
+
+      // ✅ Filled trapezoid from baseline up to line segment
+      fills.push(
+        <polygon
+          key={`gfill-${i}`}
+          points={`${x0},${baselineY} ${x0},${y0} ${x1},${y1} ${x1},${baselineY}`}
+          fill={fill}
+          stroke="none"
+          style={{ pointerEvents: "none" }}
+        />,
+      );
+
+      // ✅ Keep the colored overlay line on top
+      lines.push(
+        <line
+          key={`gline-${i}`}
+          x1={x0}
+          y1={y0}
+          x2={x1}
+          y2={y1}
+          stroke={stroke}
+          strokeWidth={3}
+          strokeLinecap="round"
+          style={{ pointerEvents: "none" }}
+        />,
+      );
+    }
+
+    return (
+      <g>
+        {fills}
+        {lines}
+      </g>
+    );
   };
 
   // ✅ FIX: allow desktop to render full content even if snapState is minimized/full-gated
-  const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+  const isDesktop =
+    typeof window !== "undefined" &&
+    window.matchMedia("(min-width: 1024px)").matches;
 
   return (
-    <div className={`w-full lg:w-96 lg:h-full bg-[var(--bg-secondary)] lg:border-l border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 ${getHeight()} lg:!h-full`}>
+    <div
+      className={`w-full lg:w-96 lg:h-full bg-[var(--bg-secondary)] lg:border-l border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 ${getHeight()} lg:!h-full`}
+    >
       {/* Mobile Drag Handle - single unified one */}
       <button
         onClick={cycleSnapState}
-        className={`lg:hidden w-full flex items-center justify-center shrink-0 cursor-pointer active:bg-[var(--bg-tertiary)] ${snapState === 'minimized' ? 'py-1' : 'py-3'}`}
+        className={`lg:hidden w-full flex items-center justify-center shrink-0 cursor-pointer active:bg-[var(--bg-tertiary)] ${snapState === "minimized" ? "py-1" : "py-3"}`}
       >
         <div className="w-12 h-1.5 bg-[var(--border-color)] rounded-full" />
       </button>
@@ -140,14 +418,20 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className={`border-b border-[var(--border-color)] lg:sticky lg:top-0 bg-[var(--bg-secondary)] z-10 ${snapState === 'minimized' ? 'px-4 pt-0 pb-2' : 'p-6'}`}>
-          <div className={`flex justify-between items-start gap-3 ${snapState === 'minimized' ? 'mb-1' : 'mb-4'}`}>
-            <h2 className={`text-2xl font-display font-bold text-[var(--accent-primary)] ${snapState === 'minimized' ? 'line-clamp-2' : ''}`}>
-              {track.properties.name || 'Unnamed Track'}
+        <div
+          className={`border-b border-[var(--border-color)] lg:sticky lg:top-0 bg-[var(--bg-secondary)] z-10 ${snapState === "minimized" ? "px-4 pt-0 pb-2" : "p-6"}`}
+        >
+          <div
+            className={`flex justify-between items-start gap-3 ${snapState === "minimized" ? "mb-1" : "mb-4"}`}
+          >
+            <h2
+              className={`text-2xl font-display font-bold text-[var(--accent-primary)] ${snapState === "minimized" ? "line-clamp-2" : ""}`}
+            >
+              {track.properties.name || "Unnamed Track"}
             </h2>
             <div className="flex gap-2 shrink-0 ml-2">
-
-              <a href={gpxUrlForTrack(track)}
+              <a
+                href={gpxUrlForTrack(track)}
                 download
                 title="Download GPX"
                 aria-label="Download GPX"
@@ -162,8 +446,18 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                 title="Copy link"
               >
                 {copySuccess ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 ) : (
                   <Share2 className="w-5 h-5" />
@@ -173,14 +467,24 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                 onClick={onClose}
                 className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
           </div>
 
-          {snapState !== 'minimized' && track.properties.description && (
+          {snapState !== "minimized" && track.properties.description && (
             <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
               {track.properties.description}
             </p>
@@ -189,10 +493,11 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
 
         {/* Stats Grid */}
 
-        <div className={`${snapState === 'minimized' ? 'hidden lg:block' : ''}`}>
-          {(snapState !== 'minimized' || isDesktop) && (
+        <div
+          className={`${snapState === "minimized" ? "hidden lg:block" : ""}`}
+        >
+          {(snapState !== "minimized" || isDesktop) && (
             <div className="p-6 space-y-4">
-
               {/* Location Info */}
               {track.properties.location && (
                 <div className="sidebar-section">
@@ -213,7 +518,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                     <div className="stat-label">Distance</div>
                   </div>
                   <div className="stat-value">
-                    {track.properties.distance?.toFixed(2) || '0'} mi
+                    {track.properties.distance?.toFixed(2) || "0"} mi
                   </div>
                 </div>
 
@@ -223,47 +528,140 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                     <div className="stat-label">Elevation Gain</div>
                   </div>
                   <div className="stat-value">
-                    {track.properties.elevationGain?.toFixed(0) || '0'} ft
+                    {track.properties.elevationGain?.toFixed(0) || "0"} ft
                   </div>
                 </div>
               </div>
 
-
               {/* Elevation Profile */}
               {hasElevation && (
                 <div ref={profileRef} className="sidebar-section">
-                  <h3 className="text-lg font-display font-semibold mb-4 text-[var(--accent-primary)]">
-                    Elevation Profile
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-display font-semibold text-[var(--accent-primary)]">
+                      Elevation Profile
+                    </h3>
+
+                    <div className="relative" ref={gradeMenuRef}>
+                      <button
+                        onClick={() => setGradeMenuOpen((v) => !v)}
+                        className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-1"
+                        title="Options"
+                        aria-label="Options"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                          <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+                        </svg>
+                      </button>
+
+                      {gradeMenuOpen && (
+                        <div className="absolute top-8 right-0 z-50 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-lg p-3 min-w-[200px]">
+                          <label className="flex items-center justify-between cursor-pointer">
+                            <span className="text-sm text-[var(--text-primary)]">
+                              Grade overlay
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={showGradeOverlay}
+                              onChange={(e) =>
+                                setShowGradeOverlay(e.target.checked)
+                              }
+                              className="ml-2"
+                            />
+                          </label>
+
+                          <label className="flex items-center justify-between cursor-pointer mt-2">
+                            <span className="text-sm text-[var(--text-primary)]">
+                              Sort grade metrics
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={sortGradeMetrics}
+                              onChange={(e) =>
+                                setSortGradeMetrics(e.target.checked)
+                              }
+                              className="ml-2"
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart
                       data={elevationProfile}
                       onMouseMove={handleChartMouseMove}
                       onMouseLeave={handleChartMouseLeave}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.3} />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--border-color)"
+                        opacity={0.3}
+                      />
                       <XAxis
                         dataKey="distance"
                         stroke="var(--text-secondary)"
-                        tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
-                        label={{ value: 'Distance (mi)', position: 'insideBottom', offset: -5, fill: 'var(--text-secondary)' }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
+                        label={{
+                          value: "Distance (mi)",
+                          position: "insideBottom",
+                          offset: -5,
+                          fill: "var(--text-secondary)",
+                        }}
                         tickFormatter={(value) => value.toFixed(1)}
                       />
                       <YAxis
                         stroke="var(--text-secondary)"
-                        tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
-                        label={{ value: 'Elevation (ft)', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)' }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
+                        label={{
+                          value: "Elevation (ft)",
+                          angle: -90,
+                          position: "insideLeft",
+                          fill: "var(--text-secondary)",
+                        }}
                         tickFormatter={(value) => Math.round(value)}
                       />
+
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '8px',
-                          color: 'var(--text-primary)'
+                          backgroundColor: "var(--bg-secondary)",
+                          border: "1px solid var(--border-color)",
+                          borderRadius: "8px",
+                          color: "var(--text-primary)",
                         }}
-                        formatter={(value) => [`${Math.round(value)} ft`, 'Elevation']}
+                        // title line: miles (unchanged)
                         labelFormatter={(value) => `${value.toFixed(2)} mi`}
+                        // body lines: elevation (+ grade if overlay enabled)
+                        formatter={(value, name, payload) => {
+                          // For the elevation line, `value` is elevation.
+                          const elevationFt = Math.round(value);
+
+                          if (!showGradeOverlay) {
+                            return [`${elevationFt} ft`, "Elevation"];
+                          }
+
+                          // When overlay is on, include grade %
+                          const distMi = payload?.payload?.distance;
+                          const g =
+                            typeof distMi === "number"
+                              ? gradeAtDistance(distMi)
+                              : null;
+                          const gradeStr =
+                            typeof g === "number" ? `${g.toFixed(1)}%` : "—";
+
+                          // Recharts Tooltip expects an array of [value, name] pairs when returning arrays,
+                          // but its "formatter" runs per item. We can return a multiline string value.
+                          return [
+                            `${elevationFt} ft\n${gradeStr}`,
+                            "Elevation / Grade",
+                          ];
+                        }}
                       />
                       <Line
                         type="monotone"
@@ -271,20 +669,69 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                         stroke="var(--accent-primary)"
                         strokeWidth={3}
                         dot={false}
-                        activeDot={{ r: 6, fill: 'var(--accent-primary)' }}
+                        activeDot={{ r: 6, fill: "var(--accent-primary)" }}
                       />
-                      {mapHoverIndex !== null && elevationProfile[mapHoverIndex] && (
-                        <ReferenceDot
-                          x={elevationProfile[mapHoverIndex].distance}
-                          y={elevationProfile[mapHoverIndex].elevation}
-                          r={8}
-                          fill="var(--accent-primary)"
-                          stroke="#fff"
-                          strokeWidth={3}
-                        />
+
+                      {showGradeOverlay && (
+                        <Customized component={renderGradeOverlay} />
                       )}
+
+                      {mapHoverIndex !== null &&
+                        elevationProfile[mapHoverIndex] && (
+                          <ReferenceDot
+                            x={elevationProfile[mapHoverIndex].distance}
+                            y={elevationProfile[mapHoverIndex].elevation}
+                            r={8}
+                            fill="var(--accent-primary)"
+                            stroke="#fff"
+                            strokeWidth={3}
+                          />
+                        )}
                     </LineChart>
                   </ResponsiveContainer>
+                </div>
+              )}
+
+              {gradeMetrics && (
+                <div className="sidebar-section">
+                  <h3 className="text-lg font-display font-semibold mb-4 text-[var(--accent-primary)]">
+                    Grade Metrics
+                  </h3>
+
+                  <div className="space-y-2">
+                    {gradeMetricsRows.map((r) => (
+                      <div
+                        key={r.key}
+                        className="flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className="inline-block w-3.5 h-3.5 rounded-sm shrink-0"
+                            style={{ backgroundColor: r.color }}
+                          />
+                          <span className="text-sm text-[var(--text-primary)] truncate">
+                            {r.label}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-4 shrink-0">
+                          <span className="text-sm text-[var(--text-secondary)] tabular-nums">
+                            {r.percent.toFixed(1)}%
+                          </span>
+                          <span className="text-sm text-[var(--text-secondary)] tabular-nums w-[72px] text-right">
+                            {r.miles.toFixed(2)} mi
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex justify-between text-sm">
+                    <span className="text-[var(--text-secondary)]">Total</span>
+                    <span className="text-[var(--text-primary)] font-medium tabular-nums">
+                      {gradeMetrics.totalMiles.toFixed(2)} mi
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -297,13 +744,17 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-baseline">
-                      <span className="text-[var(--text-secondary)] text-sm">Equivalent Flat Distance</span>
+                      <span className="text-[var(--text-secondary)] text-sm">
+                        Equivalent Flat Distance
+                      </span>
                       <span className="text-lg font-display font-bold text-[var(--accent-primary)]">
                         {equivalentDistance.toFixed(2)} mi
                       </span>
                     </div>
                     <div className="flex justify-between items-baseline">
-                      <span className="text-[var(--text-secondary)] text-sm">Climb Factor</span>
+                      <span className="text-[var(--text-secondary)] text-sm">
+                        Climb Factor
+                      </span>
                       <span className="text-lg font-display font-bold text-[var(--accent-primary)]">
                         {(climbFactor * 100).toFixed(1)}%
                       </span>
@@ -311,7 +762,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                   </div>
 
                   <p className="text-xs text-[var(--text-secondary)] mt-2 italic">
-                    Source:{' '}
+                    Source:{" "}
                     <a
                       href="https://www.biorxiv.org/content/10.1101/2021.04.03.438339v3.full"
                       target="_blank"
@@ -324,11 +775,12 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                 </div>
               )}
 
-
               {/* Weather Section - only show in full mode */}
 
-              <div className={`${snapState !== 'full' ? 'hidden lg:block' : ''}`}>
-                {(snapState === 'full' || isDesktop) && (
+              <div
+                className={`${snapState !== "full" ? "hidden lg:block" : ""}`}
+              >
+                {(snapState === "full" || isDesktop) && (
                   <div className="sidebar-section">
                     <div className="flex items-center gap-2 mb-4">
                       <Cloud className="w-5 h-5 text-[var(--accent-primary)]" />
@@ -347,7 +799,9 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                       <>
                         {/* Current Weather */}
                         <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 mb-4">
-                          <div className="text-[var(--text-secondary)] text-sm mb-2">Current Conditions</div>
+                          <div className="text-[var(--text-secondary)] text-sm mb-2">
+                            Current Conditions
+                          </div>
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="text-4xl font-display font-bold text-[var(--accent-primary)]">
@@ -414,8 +868,10 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
 
               {/* Air Quality Section - only show in full mode */}
 
-              <div className={`${snapState !== 'full' ? 'hidden lg:block' : ''}`}>
-                {(snapState === 'full' || isDesktop) && (
+              <div
+                className={`${snapState !== "full" ? "hidden lg:block" : ""}`}
+              >
+                {(snapState === "full" || isDesktop) && (
                   <div className="sidebar-section">
                     <div className="flex items-center gap-2 mb-4">
                       <Activity className="w-5 h-5 text-[var(--accent-primary)]" />
@@ -434,13 +890,15 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                       <>
                         {/* Current AQI */}
                         <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 mb-4">
-                          <div className="text-[var(--text-secondary)] text-sm mb-3">Current Air Quality Index</div>
+                          <div className="text-[var(--text-secondary)] text-sm mb-3">
+                            Current Air Quality Index
+                          </div>
                           <div className="flex items-center gap-4">
                             <div
                               className="w-20 h-20 rounded-full flex items-center justify-center font-display font-bold text-2xl"
                               style={{
                                 backgroundColor: aqi.current.category.color,
-                                color: aqi.current.category.textColor
+                                color: aqi.current.category.textColor,
                               }}
                             >
                               {aqi.current.aqi}
@@ -466,7 +924,9 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                         {/* Forecast AQI */}
                         {aqi.forecast && (
                           <div className="bg-[var(--bg-tertiary)] rounded-lg p-4">
-                            <div className="text-[var(--text-secondary)] text-sm mb-3">24-Hour Forecast</div>
+                            <div className="text-[var(--text-secondary)] text-sm mb-3">
+                              24-Hour Forecast
+                            </div>
                             <div className="flex items-center justify-between">
                               <div className="text-[var(--text-primary)] font-medium">
                                 Expected AQI
@@ -475,8 +935,9 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                                 <div
                                   className="px-3 py-1 rounded-full font-display font-bold"
                                   style={{
-                                    backgroundColor: aqi.forecast.category.color,
-                                    color: aqi.forecast.category.textColor
+                                    backgroundColor:
+                                      aqi.forecast.category.color,
+                                    color: aqi.forecast.category.textColor,
                                   }}
                                 >
                                   {aqi.forecast.aqi}

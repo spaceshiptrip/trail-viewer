@@ -286,3 +286,73 @@ const getWeatherCondition = (code) => {
   };
   return conditions[code] || 'Unknown';
 };
+
+
+// --- Grade overlay helpers (matches GPX3DPlotter logic) ---
+
+function toRad_(deg) {
+  return (deg * Math.PI) / 180;
+}
+
+function haversineMeters_(a, b) {
+  // coords are [lon, lat, ele]
+  const R = 6371e3;
+  const lat1 = toRad_(a[1]);
+  const lat2 = toRad_(b[1]);
+  const dLat = toRad_(b[1] - a[1]);
+  const dLon = toRad_(b[0] - a[0]);
+
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+export function gradeColorForPct(gradePct) {
+  // Same bins as GPX3DPlotter
+  if (gradePct >= 25) return "#ff0000";
+  if (gradePct >= 20) return "#ff6600";
+  if (gradePct >= 15) return "#ff9900";
+  if (gradePct >= 10) return "#ffcc00";
+  if (gradePct >= 5) return "#ccff00";
+  if (gradePct >= 0) return "#00ff00";
+  if (gradePct >= -5) return "#00ccff";
+  if (gradePct >= -10) return "#3399ff";
+  return "#6666ff";
+}
+
+export function calculateGradePerPoint(coords) {
+  // Returns grade % per point, sized to coords.length
+  if (!coords || coords.length < 2) return new Array(coords?.length || 0).fill(0);
+
+  const gradePerPoint = new Array(coords.length).fill(0);
+
+  const QUARTER_MILE_METERS = 402.336;
+  const INTERVAL_FACTOR = 40;
+  const GRADE_INTERVAL_METERS = QUARTER_MILE_METERS / INTERVAL_FACTOR;
+
+  let cumulativeDist = 0;
+  let lastSegmentIndex = 0;
+
+  for (let i = 1; i < coords.length; i++) {
+    cumulativeDist += haversineMeters_(coords[i - 1], coords[i]);
+
+    if (cumulativeDist >= GRADE_INTERVAL_METERS || i === coords.length - 1) {
+      const ele1 = Number(coords[lastSegmentIndex][2] || 0);
+      const ele2 = Number(coords[i][2] || 0);
+      const elevDiff = ele2 - ele1;
+
+      const grade = cumulativeDist > 0 ? (elevDiff / cumulativeDist) * 100 : 0;
+
+      for (let j = lastSegmentIndex + 1; j <= i; j++) {
+        gradePerPoint[j] = grade;
+      }
+
+      lastSegmentIndex = i;
+      cumulativeDist = 0;
+    }
+  }
+
+  return gradePerPoint;
+}
