@@ -17,6 +17,14 @@
       "elevationGain": 1858
     },
     {
+      "file": "La_Verne_to_Potato_Mtn_20.geojson",
+      "name": "LaVerne2PotatoMtn20",
+      "location": "",
+      "description": "",
+      "distance": 19.31,
+      "elevationGain": 2170
+    },
+    {
       "file": "MarshallCanyonBigLoop12.geojson",
       "name": "Marshall Canyon Big Loop 12",
       "location": "Claremont Hills Regional Park, Claremont, CA",
