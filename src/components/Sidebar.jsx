@@ -63,6 +63,7 @@ export default function Sidebar({
   const [copySuccess, setCopySuccess] = useState(false);
   const [showGradeOverlay, setShowGradeOverlay] = useState(false); // default OFF
   const [gradeMenuOpen, setGradeMenuOpen] = useState(false);
+  const [sortGradeMetrics, setSortGradeMetrics] = useState(false); // default OFF
 
   const gradeMenuRef = useRef(null);
   const profileRef = useRef(null);
@@ -185,6 +186,101 @@ export default function Sidebar({
     return calculateGradePerPoint(coords);
   }, [coords]);
 
+  // --- Grade bins (match GPX3DPlotter color thresholds) ---
+  const GRADE_BINS = useMemo(
+    () => [
+      { key: "g25", label: "≥ 25%", min: 25, max: Infinity, color: "#ff0000" },
+      { key: "g20", label: "20–24.9%", min: 20, max: 25, color: "#ff6600" },
+      { key: "g15", label: "15–19.9%", min: 15, max: 20, color: "#ff9900" },
+      { key: "g10", label: "10–14.9%", min: 10, max: 15, color: "#ffcc00" },
+      { key: "g5", label: "5–9.9%", min: 5, max: 10, color: "#ccff00" },
+      { key: "g0", label: "0–4.9%", min: 0, max: 5, color: "#00ff00" },
+      { key: "gm5", label: "-5–-0.1%", min: -5, max: 0, color: "#00ccff" },
+      { key: "gm10", label: "-10–-5.1%", min: -10, max: -5, color: "#3399ff" },
+      {
+        key: "gmInf",
+        label: "< -10%",
+        min: -Infinity,
+        max: -10,
+        color: "#6666ff",
+      },
+    ],
+    [],
+  );
+
+  const haversineMeters = (a, b) => {
+    // coords are [lon, lat, ele]
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const R = 6371e3;
+    const lat1 = toRad(a[1]);
+    const lat2 = toRad(b[1]);
+    const dLat = toRad(b[1] - a[1]);
+    const dLon = toRad(b[0] - a[0]);
+    const s =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+  };
+
+  const gradeMetrics = useMemo(() => {
+    if (!coords || coords.length < 2) return null;
+    if (!gradePerPoint || gradePerPoint.length !== coords.length) return null;
+
+    const sumsMeters = Object.fromEntries(GRADE_BINS.map((b) => [b.key, 0]));
+    let totalMeters = 0;
+
+    const binForGrade = (g) => {
+      for (const b of GRADE_BINS) {
+        if (g >= b.min && g < b.max) return b;
+      }
+      return GRADE_BINS[GRADE_BINS.length - 1];
+    };
+
+    for (let i = 1; i < coords.length; i++) {
+      const segMeters = haversineMeters(coords[i - 1], coords[i]);
+      if (!Number.isFinite(segMeters) || segMeters <= 0) continue;
+
+      // use grade assigned to point i (segment end), consistent with your overlay
+      const g = Number(gradePerPoint[i] ?? 0);
+      const b = binForGrade(g);
+
+      sumsMeters[b.key] += segMeters;
+      totalMeters += segMeters;
+    }
+
+    if (totalMeters <= 0) return null;
+
+    const metersToMi = (m) => m / 1609.34;
+
+    const rows = GRADE_BINS.map((b) => {
+      const m = sumsMeters[b.key] || 0;
+      const mi = metersToMi(m);
+      const pct = (m / totalMeters) * 100;
+      return {
+        ...b,
+        meters: m,
+        miles: mi,
+        percent: pct,
+      };
+    });
+
+    return {
+      totalMiles: metersToMi(totalMeters),
+      rows,
+    };
+  }, [coords, gradePerPoint, GRADE_BINS]);
+
+  const gradeMetricsRows = useMemo(() => {
+    if (!gradeMetrics?.rows) return [];
+    if (!sortGradeMetrics) return gradeMetrics.rows; // legend order
+
+    // Sort by distance (miles) desc; tie-break by percent desc
+    return [...gradeMetrics.rows].sort((a, b) => {
+      if (b.miles !== a.miles) return b.miles - a.miles;
+      return (b.percent || 0) - (a.percent || 0);
+    });
+  }, [gradeMetrics, sortGradeMetrics]);
+
   const gradeAtDistance = (distMi) => {
     if (!elevationProfile?.length) return null;
 
@@ -214,13 +310,28 @@ export default function Sidebar({
     return "h-[85vh]";
   };
 
+  const hexToRgba = (hex, a = 0.22) => {
+    if (!hex) return `rgba(0,0,0,${a})`;
+    const h = hex.replace("#", "").trim();
+    const full =
+      h.length === 3
+        ? h
+            .split("")
+            .map((c) => c + c)
+            .join("")
+        : h;
+    const n = parseInt(full, 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return `rgba(${r},${g},${b},${a})`;
+  };
+
   const renderGradeOverlay = (rechartsProps) => {
     if (!showGradeOverlay) return null;
 
-    // Recharts provides the already-laid-out points for the Line(s)
     const items = rechartsProps?.formattedGraphicalItems || [];
 
-    // Find the elevation Line item (dataKey === "elevation")
     const elevItem =
       items.find((it) => it?.props?.dataKey === "elevation") ||
       items.find((it) => it?.item?.props?.dataKey === "elevation") ||
@@ -229,9 +340,14 @@ export default function Sidebar({
     const points =
       elevItem?.props?.points || elevItem?.item?.props?.points || null;
 
-    if (!points || points.length < 2) return null;
+    const offset = rechartsProps?.offset;
+    if (!points || points.length < 2 || !offset) return null;
 
-    const segs = [];
+    // ✅ Chart baseline (x-axis) in pixels
+    const baselineY = offset.top + offset.height;
+
+    const fills = [];
+    const lines = [];
 
     for (let i = 1; i < points.length; i++) {
       const p0 = points[i - 1];
@@ -242,13 +358,26 @@ export default function Sidebar({
       const x1 = Number(p1?.x);
       const y1 = Number(p1?.y);
 
-      if (![x0, y0, x1, y1].every(Number.isFinite)) continue;
+      if (![x0, y0, x1, y1, baselineY].every(Number.isFinite)) continue;
 
       const stroke = gradeColors[i] || "var(--accent-primary)";
+      const fill = hexToRgba(stroke, 0.2); // tweak alpha here
 
-      segs.push(
+      // ✅ Filled trapezoid from baseline up to line segment
+      fills.push(
+        <polygon
+          key={`gfill-${i}`}
+          points={`${x0},${baselineY} ${x0},${y0} ${x1},${y1} ${x1},${baselineY}`}
+          fill={fill}
+          stroke="none"
+          style={{ pointerEvents: "none" }}
+        />,
+      );
+
+      // ✅ Keep the colored overlay line on top
+      lines.push(
         <line
-          key={`gseg-${i}`}
+          key={`gline-${i}`}
           x1={x0}
           y1={y0}
           x2={x1}
@@ -261,7 +390,12 @@ export default function Sidebar({
       );
     }
 
-    return <g>{segs}</g>;
+    return (
+      <g>
+        {fills}
+        {lines}
+      </g>
+    );
   };
 
   // ✅ FIX: allow desktop to render full content even if snapState is minimized/full-gated
@@ -441,6 +575,20 @@ export default function Sidebar({
                               className="ml-2"
                             />
                           </label>
+
+                          <label className="flex items-center justify-between cursor-pointer mt-2">
+                            <span className="text-sm text-[var(--text-primary)]">
+                              Sort grade metrics
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={sortGradeMetrics}
+                              onChange={(e) =>
+                                setSortGradeMetrics(e.target.checked)
+                              }
+                              className="ml-2"
+                            />
+                          </label>
                         </div>
                       )}
                     </div>
@@ -541,6 +689,49 @@ export default function Sidebar({
                         )}
                     </LineChart>
                   </ResponsiveContainer>
+                </div>
+              )}
+
+              {gradeMetrics && (
+                <div className="sidebar-section">
+                  <h3 className="text-lg font-display font-semibold mb-4 text-[var(--accent-primary)]">
+                    Grade Metrics
+                  </h3>
+
+                  <div className="space-y-2">
+                    {gradeMetricsRows.map((r) => (
+                      <div
+                        key={r.key}
+                        className="flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className="inline-block w-3.5 h-3.5 rounded-sm shrink-0"
+                            style={{ backgroundColor: r.color }}
+                          />
+                          <span className="text-sm text-[var(--text-primary)] truncate">
+                            {r.label}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-4 shrink-0">
+                          <span className="text-sm text-[var(--text-secondary)] tabular-nums">
+                            {r.percent.toFixed(1)}%
+                          </span>
+                          <span className="text-sm text-[var(--text-secondary)] tabular-nums w-[72px] text-right">
+                            {r.miles.toFixed(2)} mi
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex justify-between text-sm">
+                    <span className="text-[var(--text-secondary)]">Total</span>
+                    <span className="text-[var(--text-primary)] font-medium tabular-nums">
+                      {gradeMetrics.totalMiles.toFixed(2)} mi
+                    </span>
+                  </div>
                 </div>
               )}
 
