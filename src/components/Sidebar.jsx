@@ -1,45 +1,84 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
-import { Mountain, TrendingUp, MapPin, Cloud, Wind, Droplets, Calendar, Activity, Share2, Download, Zap } from 'lucide-react';
-import { getElevationProfile, fetchWeather, fetchAQI, calculateEquivalentFlatDistance, calculateClimbFactor } from '../utils';
-
+import { useState, useEffect, useRef, useMemo } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceDot,
+  Customized,
+} from "recharts";
+import {
+  Mountain,
+  TrendingUp,
+  MapPin,
+  Cloud,
+  Wind,
+  Droplets,
+  Calendar,
+  Activity,
+  Share2,
+  Download,
+  Zap,
+} from "lucide-react";
+import {
+  getElevationProfile,
+  fetchWeather,
+  fetchAQI,
+  calculateEquivalentFlatDistance,
+  calculateClimbFactor,
+  calculateGradePerPoint,
+  gradeColorForPct,
+} from "../utils";
 
 function gpxUrlForTrack(track) {
   const file = track?.file;
   const name = track?.properties?.name;
 
   if (file) {
-    return `${import.meta.env.BASE_URL}tracks/gpx/${file.replace('.geojson', '.gpx')}`;
+    return `${import.meta.env.BASE_URL}tracks/gpx/${file.replace(".geojson", ".gpx")}`;
   }
 
   if (name) {
     return `${import.meta.env.BASE_URL}tracks/gpx/${encodeURIComponent(name)}.gpx`;
   }
 
-  return '#';
+  return "#";
 }
 
-export default function Sidebar({ track, onClose, onCursorPosition, mapHoverIndex }) {
+export default function Sidebar({
+  track,
+  onClose,
+  onCursorPosition,
+  mapHoverIndex,
+}) {
   const [weather, setWeather] = useState(null);
   const [aqi, setAqi] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
   const [loadingAQI, setLoadingAQI] = useState(false);
   const [hoveredPoint, setHoveredPoint] = useState(null);
-  const [snapState, setSnapState] = useState('minimized'); // 'minimized', 'mid', 'full'
+  const [snapState, setSnapState] = useState("minimized"); // 'minimized', 'mid', 'full'
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showGradeOverlay, setShowGradeOverlay] = useState(false); // default OFF
+  const [gradeMenuOpen, setGradeMenuOpen] = useState(false);
+
+  const gradeMenuRef = useRef(null);
   const profileRef = useRef(null);
 
   // Calculate equivalent flat distance and climb factor
   const { equivalentDistance, climbFactor } = useMemo(() => {
     if (!track) return { equivalentDistance: 0, climbFactor: 0 };
-    
-    const coords = track.geometry.type === 'LineString'
-      ? track.geometry.coordinates
-      : track.geometry.coordinates[0];
-    
+
+    const coords =
+      track.geometry.type === "LineString"
+        ? track.geometry.coordinates
+        : track.geometry.coordinates[0];
+
     return {
       equivalentDistance: calculateEquivalentFlatDistance(coords),
-      climbFactor: calculateClimbFactor(coords)
+      climbFactor: calculateClimbFactor(coords),
     };
   }, [track]);
 
@@ -62,7 +101,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
 
   const handleCopyLink = () => {
     const url = new URL(window.location.href);
-    url.searchParams.set('track', track.properties.id);
+    url.searchParams.set("track", track.properties.id);
     navigator.clipboard.writeText(url.toString()).then(() => {
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
@@ -70,9 +109,9 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
   };
 
   const cycleSnapState = () => {
-    if (snapState === 'minimized') setSnapState('mid');
-    else if (snapState === 'mid') setSnapState('full');
-    else setSnapState('minimized');
+    if (snapState === "minimized") setSnapState("mid");
+    else if (snapState === "mid") setSnapState("full");
+    else setSnapState("minimized");
   };
 
   useEffect(() => {
@@ -80,13 +119,18 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
       setLoadingWeather(true);
       setLoadingAQI(true);
 
-      const center = track.geometry.type === 'LineString'
-        ? track.geometry.coordinates[Math.floor(track.geometry.coordinates.length / 2)]
-        : track.geometry.coordinates[0][Math.floor(track.geometry.coordinates[0].length / 2)];
+      const center =
+        track.geometry.type === "LineString"
+          ? track.geometry.coordinates[
+              Math.floor(track.geometry.coordinates.length / 2)
+            ]
+          : track.geometry.coordinates[0][
+              Math.floor(track.geometry.coordinates[0].length / 2)
+            ];
 
       // Fetch weather
       fetchWeather(center[1], center[0])
-        .then(data => {
+        .then((data) => {
           setWeather(data);
           setLoadingWeather(false);
         })
@@ -94,7 +138,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
 
       // Fetch AQI
       fetchAQI(center[1], center[0])
-        .then(data => {
+        .then((data) => {
           setAqi(data);
           setLoadingAQI(false);
         })
@@ -105,34 +149,118 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
   if (!track) return null;
 
   useEffect(() => {
-    if (snapState === 'mid' && profileRef.current) {
-      profileRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (snapState === "mid" && profileRef.current) {
+      profileRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [snapState]);
 
-  const coords = track.geometry.type === 'LineString'
-    ? track.geometry.coordinates
-    : track.geometry.coordinates[0];
+  useEffect(() => {
+    if (!gradeMenuOpen) return;
+
+    const onDown = (e) => {
+      if (gradeMenuRef.current && !gradeMenuRef.current.contains(e.target)) {
+        setGradeMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+    };
+  }, [gradeMenuOpen]);
+
+  const coords =
+    track.geometry.type === "LineString"
+      ? track.geometry.coordinates
+      : track.geometry.coordinates[0];
 
   const elevationProfile = getElevationProfile(coords);
-  const hasElevation = elevationProfile.length > 0 && elevationProfile[0].elevation !== 0;
+  const hasElevation =
+    elevationProfile.length > 0 && elevationProfile[0].elevation !== 0;
+
+  const gradePerPoint = useMemo(() => {
+    // aligned to coords; sidebar elevationProfile is expected to match indexing
+    return calculateGradePerPoint(coords);
+  }, [coords]);
+
+  const gradeColors = useMemo(() => {
+    return gradePerPoint.map((g) => gradeColorForPct(g));
+  }, [gradePerPoint]);
 
   // Calculate height based on snap state
   const getHeight = () => {
-    if (snapState === 'minimized') return 'h-[80px]';
-    if (snapState === 'mid') return 'h-[330px]';
-    return 'h-[85vh]';
+    if (snapState === "minimized") return "h-[80px]";
+    if (snapState === "mid") return "h-[330px]";
+    return "h-[85vh]";
+  };
+
+  const renderGradeOverlay = (rechartsProps) => {
+    if (!showGradeOverlay) return null;
+
+    const xAxis = rechartsProps?.xAxisMap
+      ? Object.values(rechartsProps.xAxisMap)[0]
+      : null;
+    const yAxis = rechartsProps?.yAxisMap
+      ? Object.values(rechartsProps.yAxisMap)[0]
+      : null;
+    const offset = rechartsProps?.offset;
+
+    const xScale = xAxis?.scale;
+    const yScale = yAxis?.scale;
+
+    if (!xScale || !yScale || !offset) return null;
+    if (!elevationProfile || elevationProfile.length < 2) return null;
+
+    const left = offset.left;
+    const top = offset.top;
+
+    const segs = [];
+    for (let i = 1; i < elevationProfile.length; i++) {
+      const p0 = elevationProfile[i - 1];
+      const p1 = elevationProfile[i];
+
+      // x is distance (mi), y is elevation (ft) per your existing chart
+      const x0 = xScale(p0.distance);
+      const y0 = yScale(p0.elevation);
+      const x1 = xScale(p1.distance);
+      const y1 = yScale(p1.elevation);
+
+      // Use grade color for segment end (similar to GPX3DPlotter segment coloring)
+      const stroke = gradeColors[i] || "var(--accent-primary)";
+
+      segs.push(
+        <line
+          key={`gseg-${i}`}
+          x1={x0}
+          y1={y0}
+          x2={x1}
+          y2={y1}
+          stroke={stroke}
+          strokeWidth={3}
+          strokeLinecap="round"
+          style={{ pointerEvents: "none" }}
+        />,
+      );
+    }
+
+    return <g>{segs}</g>;
   };
 
   // ✅ FIX: allow desktop to render full content even if snapState is minimized/full-gated
-  const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+  const isDesktop =
+    typeof window !== "undefined" &&
+    window.matchMedia("(min-width: 1024px)").matches;
 
   return (
-    <div className={`w-full lg:w-96 lg:h-full bg-[var(--bg-secondary)] lg:border-l border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 ${getHeight()} lg:!h-full`}>
+    <div
+      className={`w-full lg:w-96 lg:h-full bg-[var(--bg-secondary)] lg:border-l border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 ${getHeight()} lg:!h-full`}
+    >
       {/* Mobile Drag Handle - single unified one */}
       <button
         onClick={cycleSnapState}
-        className={`lg:hidden w-full flex items-center justify-center shrink-0 cursor-pointer active:bg-[var(--bg-tertiary)] ${snapState === 'minimized' ? 'py-1' : 'py-3'}`}
+        className={`lg:hidden w-full flex items-center justify-center shrink-0 cursor-pointer active:bg-[var(--bg-tertiary)] ${snapState === "minimized" ? "py-1" : "py-3"}`}
       >
         <div className="w-12 h-1.5 bg-[var(--border-color)] rounded-full" />
       </button>
@@ -140,14 +268,20 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className={`border-b border-[var(--border-color)] lg:sticky lg:top-0 bg-[var(--bg-secondary)] z-10 ${snapState === 'minimized' ? 'px-4 pt-0 pb-2' : 'p-6'}`}>
-          <div className={`flex justify-between items-start gap-3 ${snapState === 'minimized' ? 'mb-1' : 'mb-4'}`}>
-            <h2 className={`text-2xl font-display font-bold text-[var(--accent-primary)] ${snapState === 'minimized' ? 'line-clamp-2' : ''}`}>
-              {track.properties.name || 'Unnamed Track'}
+        <div
+          className={`border-b border-[var(--border-color)] lg:sticky lg:top-0 bg-[var(--bg-secondary)] z-10 ${snapState === "minimized" ? "px-4 pt-0 pb-2" : "p-6"}`}
+        >
+          <div
+            className={`flex justify-between items-start gap-3 ${snapState === "minimized" ? "mb-1" : "mb-4"}`}
+          >
+            <h2
+              className={`text-2xl font-display font-bold text-[var(--accent-primary)] ${snapState === "minimized" ? "line-clamp-2" : ""}`}
+            >
+              {track.properties.name || "Unnamed Track"}
             </h2>
             <div className="flex gap-2 shrink-0 ml-2">
-
-              <a href={gpxUrlForTrack(track)}
+              <a
+                href={gpxUrlForTrack(track)}
                 download
                 title="Download GPX"
                 aria-label="Download GPX"
@@ -162,8 +296,18 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                 title="Copy link"
               >
                 {copySuccess ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 ) : (
                   <Share2 className="w-5 h-5" />
@@ -173,14 +317,24 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                 onClick={onClose}
                 className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
           </div>
 
-          {snapState !== 'minimized' && track.properties.description && (
+          {snapState !== "minimized" && track.properties.description && (
             <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
               {track.properties.description}
             </p>
@@ -189,10 +343,11 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
 
         {/* Stats Grid */}
 
-        <div className={`${snapState === 'minimized' ? 'hidden lg:block' : ''}`}>
-          {(snapState !== 'minimized' || isDesktop) && (
+        <div
+          className={`${snapState === "minimized" ? "hidden lg:block" : ""}`}
+        >
+          {(snapState !== "minimized" || isDesktop) && (
             <div className="p-6 space-y-4">
-
               {/* Location Info */}
               {track.properties.location && (
                 <div className="sidebar-section">
@@ -213,7 +368,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                     <div className="stat-label">Distance</div>
                   </div>
                   <div className="stat-value">
-                    {track.properties.distance?.toFixed(2) || '0'} mi
+                    {track.properties.distance?.toFixed(2) || "0"} mi
                   </div>
                 </div>
 
@@ -223,46 +378,102 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                     <div className="stat-label">Elevation Gain</div>
                   </div>
                   <div className="stat-value">
-                    {track.properties.elevationGain?.toFixed(0) || '0'} ft
+                    {track.properties.elevationGain?.toFixed(0) || "0"} ft
                   </div>
                 </div>
               </div>
 
-
               {/* Elevation Profile */}
               {hasElevation && (
                 <div ref={profileRef} className="sidebar-section">
-                  <h3 className="text-lg font-display font-semibold mb-4 text-[var(--accent-primary)]">
-                    Elevation Profile
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-display font-semibold text-[var(--accent-primary)]">
+                      Elevation Profile
+                    </h3>
+
+                    <div className="relative" ref={gradeMenuRef}>
+                      <button
+                        onClick={() => setGradeMenuOpen((v) => !v)}
+                        className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-1"
+                        title="Options"
+                        aria-label="Options"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                          <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+                        </svg>
+                      </button>
+
+                      {gradeMenuOpen && (
+                        <div className="absolute top-8 right-0 z-50 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-lg p-3 min-w-[200px]">
+                          <label className="flex items-center justify-between cursor-pointer">
+                            <span className="text-sm text-[var(--text-primary)]">
+                              Grade overlay
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={showGradeOverlay}
+                              onChange={(e) =>
+                                setShowGradeOverlay(e.target.checked)
+                              }
+                              className="ml-2"
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart
                       data={elevationProfile}
                       onMouseMove={handleChartMouseMove}
                       onMouseLeave={handleChartMouseLeave}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.3} />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--border-color)"
+                        opacity={0.3}
+                      />
                       <XAxis
                         dataKey="distance"
                         stroke="var(--text-secondary)"
-                        tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
-                        label={{ value: 'Distance (mi)', position: 'insideBottom', offset: -5, fill: 'var(--text-secondary)' }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
+                        label={{
+                          value: "Distance (mi)",
+                          position: "insideBottom",
+                          offset: -5,
+                          fill: "var(--text-secondary)",
+                        }}
                         tickFormatter={(value) => value.toFixed(1)}
                       />
                       <YAxis
                         stroke="var(--text-secondary)"
-                        tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
-                        label={{ value: 'Elevation (ft)', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)' }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
+                        label={{
+                          value: "Elevation (ft)",
+                          angle: -90,
+                          position: "insideLeft",
+                          fill: "var(--text-secondary)",
+                        }}
                         tickFormatter={(value) => Math.round(value)}
                       />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '8px',
-                          color: 'var(--text-primary)'
+                          backgroundColor: "var(--bg-secondary)",
+                          border: "1px solid var(--border-color)",
+                          borderRadius: "8px",
+                          color: "var(--text-primary)",
                         }}
-                        formatter={(value) => [`${Math.round(value)} ft`, 'Elevation']}
+                        formatter={(value) => [
+                          `${Math.round(value)} ft`,
+                          "Elevation",
+                        ]}
                         labelFormatter={(value) => `${value.toFixed(2)} mi`}
                       />
                       <Line
@@ -271,18 +482,24 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                         stroke="var(--accent-primary)"
                         strokeWidth={3}
                         dot={false}
-                        activeDot={{ r: 6, fill: 'var(--accent-primary)' }}
+                        activeDot={{ r: 6, fill: "var(--accent-primary)" }}
                       />
-                      {mapHoverIndex !== null && elevationProfile[mapHoverIndex] && (
-                        <ReferenceDot
-                          x={elevationProfile[mapHoverIndex].distance}
-                          y={elevationProfile[mapHoverIndex].elevation}
-                          r={8}
-                          fill="var(--accent-primary)"
-                          stroke="#fff"
-                          strokeWidth={3}
-                        />
+
+                      {showGradeOverlay && (
+                        <Customized component={renderGradeOverlay} />
                       )}
+
+                      {mapHoverIndex !== null &&
+                        elevationProfile[mapHoverIndex] && (
+                          <ReferenceDot
+                            x={elevationProfile[mapHoverIndex].distance}
+                            y={elevationProfile[mapHoverIndex].elevation}
+                            r={8}
+                            fill="var(--accent-primary)"
+                            stroke="#fff"
+                            strokeWidth={3}
+                          />
+                        )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -297,13 +514,17 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-baseline">
-                      <span className="text-[var(--text-secondary)] text-sm">Equivalent Flat Distance</span>
+                      <span className="text-[var(--text-secondary)] text-sm">
+                        Equivalent Flat Distance
+                      </span>
                       <span className="text-lg font-display font-bold text-[var(--accent-primary)]">
                         {equivalentDistance.toFixed(2)} mi
                       </span>
                     </div>
                     <div className="flex justify-between items-baseline">
-                      <span className="text-[var(--text-secondary)] text-sm">Climb Factor</span>
+                      <span className="text-[var(--text-secondary)] text-sm">
+                        Climb Factor
+                      </span>
                       <span className="text-lg font-display font-bold text-[var(--accent-primary)]">
                         {(climbFactor * 100).toFixed(1)}%
                       </span>
@@ -311,7 +532,7 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                   </div>
 
                   <p className="text-xs text-[var(--text-secondary)] mt-2 italic">
-                    Source:{' '}
+                    Source:{" "}
                     <a
                       href="https://www.biorxiv.org/content/10.1101/2021.04.03.438339v3.full"
                       target="_blank"
@@ -324,11 +545,12 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                 </div>
               )}
 
-
               {/* Weather Section - only show in full mode */}
 
-              <div className={`${snapState !== 'full' ? 'hidden lg:block' : ''}`}>
-                {(snapState === 'full' || isDesktop) && (
+              <div
+                className={`${snapState !== "full" ? "hidden lg:block" : ""}`}
+              >
+                {(snapState === "full" || isDesktop) && (
                   <div className="sidebar-section">
                     <div className="flex items-center gap-2 mb-4">
                       <Cloud className="w-5 h-5 text-[var(--accent-primary)]" />
@@ -347,7 +569,9 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                       <>
                         {/* Current Weather */}
                         <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 mb-4">
-                          <div className="text-[var(--text-secondary)] text-sm mb-2">Current Conditions</div>
+                          <div className="text-[var(--text-secondary)] text-sm mb-2">
+                            Current Conditions
+                          </div>
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="text-4xl font-display font-bold text-[var(--accent-primary)]">
@@ -414,8 +638,10 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
 
               {/* Air Quality Section - only show in full mode */}
 
-              <div className={`${snapState !== 'full' ? 'hidden lg:block' : ''}`}>
-                {(snapState === 'full' || isDesktop) && (
+              <div
+                className={`${snapState !== "full" ? "hidden lg:block" : ""}`}
+              >
+                {(snapState === "full" || isDesktop) && (
                   <div className="sidebar-section">
                     <div className="flex items-center gap-2 mb-4">
                       <Activity className="w-5 h-5 text-[var(--accent-primary)]" />
@@ -434,13 +660,15 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                       <>
                         {/* Current AQI */}
                         <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 mb-4">
-                          <div className="text-[var(--text-secondary)] text-sm mb-3">Current Air Quality Index</div>
+                          <div className="text-[var(--text-secondary)] text-sm mb-3">
+                            Current Air Quality Index
+                          </div>
                           <div className="flex items-center gap-4">
                             <div
                               className="w-20 h-20 rounded-full flex items-center justify-center font-display font-bold text-2xl"
                               style={{
                                 backgroundColor: aqi.current.category.color,
-                                color: aqi.current.category.textColor
+                                color: aqi.current.category.textColor,
                               }}
                             >
                               {aqi.current.aqi}
@@ -466,7 +694,9 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                         {/* Forecast AQI */}
                         {aqi.forecast && (
                           <div className="bg-[var(--bg-tertiary)] rounded-lg p-4">
-                            <div className="text-[var(--text-secondary)] text-sm mb-3">24-Hour Forecast</div>
+                            <div className="text-[var(--text-secondary)] text-sm mb-3">
+                              24-Hour Forecast
+                            </div>
                             <div className="flex items-center justify-between">
                               <div className="text-[var(--text-primary)] font-medium">
                                 Expected AQI
@@ -475,8 +705,9 @@ export default function Sidebar({ track, onClose, onCursorPosition, mapHoverInde
                                 <div
                                   className="px-3 py-1 rounded-full font-display font-bold"
                                   style={{
-                                    backgroundColor: aqi.forecast.category.color,
-                                    color: aqi.forecast.category.textColor
+                                    backgroundColor:
+                                      aqi.forecast.category.color,
+                                    color: aqi.forecast.category.textColor,
                                   }}
                                 >
                                   {aqi.forecast.aqi}
