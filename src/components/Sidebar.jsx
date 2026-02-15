@@ -852,18 +852,6 @@ export default function Sidebar({
                     </div>
                   </div>
                   
-                  {/* Zoom hint */}
-                  {!isZoomed && elevationProfile?.length > 0 && (
-                    <p className="text-xs text-[var(--text-secondary)] mb-2 italic">
-                      💡 Use buttons above to zoom • +/- keys • Arrow keys to pan when zoomed
-                    </p>
-                  )}
-                  {isZoomed && (
-                    <p className="text-xs text-[var(--text-secondary)] mb-2 italic">
-                      ← → to pan • +/- to zoom • 0/Esc to reset
-                    </p>
-                  )}
-                  
                   <ResponsiveContainer width="100%" height={isGraphExpanded ? 400 : 200}>
                     <LineChart
                       data={elevationProfile}
