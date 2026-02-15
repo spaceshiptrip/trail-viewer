@@ -9,7 +9,6 @@ import {
   ResponsiveContainer,
   ReferenceDot,
   Customized,
-  ReferenceArea,
 } from "recharts";
 import {
   Mountain,
@@ -28,6 +27,8 @@ import {
   Maximize2,
   ChevronLeft,
   ChevronRight,
+  Expand,
+  Minimize2,
 } from "lucide-react";
 import {
   getElevationProfile,
@@ -73,9 +74,7 @@ export default function Sidebar({
 
   // Zoom state
   const [zoomDomain, setZoomDomain] = useState(null); // null = full view, [min, max] = zoomed
-  const [refAreaLeft, setRefAreaLeft] = useState(null);
-  const [refAreaRight, setRefAreaRight] = useState(null);
-  const [isSelecting, setIsSelecting] = useState(false);
+  const [isGraphExpanded, setIsGraphExpanded] = useState(false);
 
   const gradeMenuRef = useRef(null);
   const profileRef = useRef(null);
@@ -304,9 +303,6 @@ export default function Sidebar({
 
   const handleZoomReset = () => {
     setZoomDomain(null);
-    setRefAreaLeft(null);
-    setRefAreaRight(null);
-    setIsSelecting(false);
   };
 
   const handlePanLeft = () => {
@@ -345,45 +341,8 @@ export default function Sidebar({
     setZoomDomain([nextMin, nextMax]);
   };
 
-  const onChartMouseDown = (e) => {
-    if (!e?.activeLabel) return;
-    setIsSelecting(true);
-    setRefAreaLeft(e.activeLabel);
-    setRefAreaRight(e.activeLabel);
-  };
-
-  const onChartMouseMove = (e) => {
-    if (!isSelecting || refAreaLeft == null) return;
-    if (!e?.activeLabel) return;
-    setRefAreaRight(e.activeLabel);
-  };
-
-  const onChartMouseUp = () => {
-    if (!isSelecting) return;
-    setIsSelecting(false);
-    
-    if (refAreaLeft == null || refAreaRight == null) {
-      setRefAreaLeft(null);
-      setRefAreaRight(null);
-      return;
-    }
-
-    const left = Number(refAreaLeft);
-    const right = Number(refAreaRight);
-    
-    if (!Number.isFinite(left) || !Number.isFinite(right) || Math.abs(left - right) < 0.05) {
-      // Too small or invalid selection - ignore
-      setRefAreaLeft(null);
-      setRefAreaRight(null);
-      return;
-    }
-
-    const x1 = clamp(Math.min(left, right), fullMin, fullMax);
-    const x2 = clamp(Math.max(left, right), fullMin, fullMax);
-
-    setZoomDomain([x1, x2]);
-    setRefAreaLeft(null);
-    setRefAreaRight(null);
+  const handleToggleExpand = () => {
+    setIsGraphExpanded(!isGraphExpanded);
   };
 
   // --- Grade bins (match GPX3DPlotter color thresholds) ---
@@ -604,9 +563,28 @@ export default function Sidebar({
     window.matchMedia("(min-width: 1024px)").matches;
 
   return (
-    <div
-      className={`w-full lg:w-96 lg:h-full bg-[var(--bg-secondary)] lg:border-l border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 ${getHeight()} lg:!h-full`}
-    >
+    <>
+      {/* Expanded graph overlay (desktop only) */}
+      {isGraphExpanded && isDesktop && (
+        <ExpandedGraphOverlay
+          track={track}
+          onClose={() => setIsGraphExpanded(false)}
+          zoomDomain={zoomDomain}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomReset={handleZoomReset}
+          onPanLeft={handlePanLeft}
+          onPanRight={handlePanRight}
+          isZoomed={isZoomed}
+          onCursorPosition={onCursorPosition}
+          mapHoverIndex={mapHoverIndex}
+        />
+      )}
+
+      {/* Main Sidebar */}
+      <div
+        className={`w-full lg:w-96 lg:h-full bg-[var(--bg-secondary)] lg:border-l border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 ${getHeight()} lg:!h-full`}
+      >
       {/* Mobile Drag Handle - single unified one */}
       <button
         onClick={cycleSnapState}
@@ -802,6 +780,23 @@ export default function Sidebar({
                       {/* Divider */}
                       <div className="w-px h-5 bg-[var(--border-color)] mx-1" />
 
+                      {/* Expand graph button (desktop only) */}
+                      <button
+                        onClick={handleToggleExpand}
+                        className="hidden lg:block text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-1"
+                        title={isGraphExpanded ? "Minimize graph" : "Expand graph"}
+                        aria-label={isGraphExpanded ? "Minimize graph" : "Expand graph"}
+                      >
+                        {isGraphExpanded ? (
+                          <Minimize2 className="w-5 h-5" />
+                        ) : (
+                          <Expand className="w-5 h-5" />
+                        )}
+                      </button>
+
+                      {/* Divider before options menu */}
+                      <div className="w-px h-5 bg-[var(--border-color)] mx-1" />
+
                       {/* Options menu */}
                       <div className="relative" ref={gradeMenuRef}>
                         <button
@@ -860,7 +855,7 @@ export default function Sidebar({
                   {/* Zoom hint */}
                   {!isZoomed && elevationProfile?.length > 0 && (
                     <p className="text-xs text-[var(--text-secondary)] mb-2 italic">
-                      💡 Drag to zoom • +/- keys to zoom • Arrow keys to pan
+                      💡 Use buttons above to zoom • +/- keys • Arrow keys to pan when zoomed
                     </p>
                   )}
                   {isZoomed && (
@@ -869,15 +864,10 @@ export default function Sidebar({
                     </p>
                   )}
                   
-                  <ResponsiveContainer width="100%" height={200}>
+                  <ResponsiveContainer width="100%" height={isGraphExpanded ? 400 : 200}>
                     <LineChart
                       data={elevationProfile}
-                      onMouseDown={onChartMouseDown}
-                      onMouseMove={(e) => {
-                        handleChartMouseMove(e);
-                        onChartMouseMove(e);
-                      }}
-                      onMouseUp={onChartMouseUp}
+                      onMouseMove={handleChartMouseMove}
                       onMouseLeave={handleChartMouseLeave}
                     >
                       <CartesianGrid
@@ -958,17 +948,6 @@ export default function Sidebar({
 
                       {showGradeOverlay && (
                         <Customized component={renderGradeOverlay} />
-                      )}
-
-                      {/* Selection area */}
-                      {isSelecting && refAreaLeft != null && refAreaRight != null && (
-                        <ReferenceArea
-                          x1={refAreaLeft}
-                          x2={refAreaRight}
-                          strokeOpacity={0.3}
-                          fill="var(--accent-primary)"
-                          fillOpacity={0.15}
-                        />
                       )}
 
                       {mapHoverIndex !== null &&
@@ -1253,6 +1232,206 @@ export default function Sidebar({
           )}
         </div>
       </div>
+    </div>
+    </>
+  );
+}
+
+// Expanded graph overlay (shows on top of map)
+function ExpandedGraphOverlay({ 
+  track, 
+  onClose, 
+  zoomDomain, 
+  onZoomIn, 
+  onZoomOut, 
+  onZoomReset, 
+  onPanLeft, 
+  onPanRight,
+  isZoomed,
+  onCursorPosition,
+  mapHoverIndex 
+}) {
+  const coords =
+    track.geometry.type === "LineString"
+      ? track.geometry.coordinates
+      : track.geometry.coordinates[0];
+
+  const elevationProfile = getElevationProfile(coords);
+  
+  const getDistanceDomain = () => {
+    if (!elevationProfile?.length) return [0, 0];
+    const min = Number(elevationProfile[0].distance) || 0;
+    const max = Number(elevationProfile[elevationProfile.length - 1].distance) || 0;
+    return [min, max];
+  };
+
+  const [fullMin, fullMax] = getDistanceDomain();
+
+  const handleChartMouseMove = (data) => {
+    if (data && data.activeTooltipIndex !== undefined && onCursorPosition) {
+      onCursorPosition(data.activeTooltipIndex);
+    }
+  };
+
+  const handleChartMouseLeave = () => {
+    if (onCursorPosition) {
+      onCursorPosition(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-[1005] bg-[var(--bg-secondary)] border-t-2 border-[var(--accent-primary)] shadow-2xl p-4 lg:p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Mountain className="w-5 h-5 text-[var(--accent-primary)]" />
+          <h3 className="text-lg font-display font-semibold text-[var(--accent-primary)]">
+            {track.properties.name || 'Unnamed Track'} - Elevation Profile
+          </h3>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Zoom controls */}
+          {isZoomed && (
+            <>
+              <button
+                onClick={onPanLeft}
+                className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-2"
+                title="Pan left"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={onPanRight}
+                className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-2"
+                title="Pan right"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              <div className="w-px h-6 bg-[var(--border-color)] mx-1" />
+            </>
+          )}
+
+          <button
+            onClick={onZoomOut}
+            disabled={!isZoomed}
+            className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-2 disabled:opacity-30"
+            title="Zoom out"
+          >
+            <ZoomOut className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={onZoomIn}
+            className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-2"
+            title="Zoom in"
+          >
+            <ZoomIn className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={onZoomReset}
+            disabled={!isZoomed}
+            className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-2 disabled:opacity-30"
+            title="Reset zoom"
+          >
+            <Maximize2 className="w-5 h-5" />
+          </button>
+
+          <div className="w-px h-6 bg-[var(--border-color)] mx-1" />
+
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-2"
+            title="Minimize graph"
+          >
+            <Minimize2 className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Large elevation chart */}
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart
+          data={elevationProfile}
+          onMouseMove={handleChartMouseMove}
+          onMouseLeave={handleChartMouseLeave}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="var(--border-color)"
+            opacity={0.3}
+          />
+          <XAxis
+            dataKey="distance"
+            stroke="var(--text-secondary)"
+            tick={{ fill: "var(--text-secondary)", fontSize: 14 }}
+            label={{
+              value: "Distance (mi)",
+              position: "insideBottom",
+              offset: -5,
+              fill: "var(--text-secondary)",
+              fontSize: 14,
+            }}
+            tickFormatter={(value) => value.toFixed(1)}
+            domain={zoomDomain || [fullMin, fullMax]}
+            type="number"
+            allowDataOverflow
+          />
+          <YAxis
+            stroke="var(--text-secondary)"
+            tick={{ fill: "var(--text-secondary)", fontSize: 14 }}
+            label={{
+              value: "Elevation (ft)",
+              angle: -90,
+              position: "insideLeft",
+              fill: "var(--text-secondary)",
+              fontSize: 14,
+            }}
+            tickFormatter={(value) => Math.round(value)}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "var(--bg-secondary)",
+              border: "1px solid var(--border-color)",
+              borderRadius: "8px",
+              color: "var(--text-primary)",
+            }}
+            labelFormatter={(value) => `${value.toFixed(2)} mi`}
+            formatter={(value) => [`${Math.round(value)} ft`, "Elevation"]}
+          />
+          <Line
+            type="monotone"
+            dataKey="elevation"
+            stroke="var(--accent-primary)"
+            strokeWidth={4}
+            dot={false}
+            activeDot={{ r: 8, fill: "var(--accent-primary)" }}
+          />
+
+          {mapHoverIndex !== null && elevationProfile[mapHoverIndex] && (
+            <ReferenceDot
+              x={elevationProfile[mapHoverIndex].distance}
+              y={elevationProfile[mapHoverIndex].elevation}
+              r={10}
+              fill="var(--accent-primary)"
+              stroke="#fff"
+              strokeWidth={4}
+            />
+          )}
+        </LineChart>
+      </ResponsiveContainer>
+
+      {/* Hint text */}
+      <p className="text-xs text-[var(--text-secondary)] mt-3 text-center italic">
+        {isZoomed 
+          ? "← → to pan • +/- to zoom • 0/Esc to reset"
+          : "+/- to zoom • Arrow keys to pan when zoomed"
+        }
+      </p>
     </div>
   );
 }
