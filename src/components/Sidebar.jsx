@@ -338,6 +338,22 @@ export default function Sidebar({
     return "h-[85vh]";
   };
 
+  // Expanded graph takes ~370px at bottom (260 chart + 48 header + 36 padding + 24 hint + 2 border)
+  const EXPANDED_GRAPH_HEIGHT = 370;
+  const getSidebarStyle = () => {
+    if (!isDesktop || !isGraphExpanded) return {};
+    return { maxHeight: `calc(100vh - ${EXPANDED_GRAPH_HEIGHT}px)` };
+  };
+
+  // Smart close: if graph expanded, just minimize graph; otherwise close sidebar
+  const handleCloseSidebar = () => {
+    if (isGraphExpanded) {
+      setIsGraphExpanded(false);
+    } else {
+      onClose();
+    }
+  };
+
   const hexToRgba = (hex, a = 0.22) => {
     if (!hex) return `rgba(0,0,0,${a})`;
     const h = hex.replace("#", "").trim();
@@ -396,7 +412,10 @@ export default function Sidebar({
       )}
 
       {/* Main Sidebar */}
-      <div className={`w-full lg:w-96 lg:h-full bg-[var(--bg-secondary)] lg:border-l border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 ${getHeight()} lg:!h-full`}>
+      <div
+        className={`w-full lg:w-96 lg:h-full bg-[var(--bg-secondary)] lg:border-l border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 ${getHeight()} lg:!h-full`}
+        style={getSidebarStyle()}
+      >
         {/* Mobile Drag Handle */}
         <button
           onClick={cycleSnapState}
@@ -438,8 +457,9 @@ export default function Sidebar({
                   )}
                 </button>
                 <button
-                  onClick={onClose}
+                  onClick={handleCloseSidebar}
                   className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1"
+                  title={isGraphExpanded ? "Minimize graph" : "Close sidebar"}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

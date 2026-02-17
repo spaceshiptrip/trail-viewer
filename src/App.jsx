@@ -618,7 +618,8 @@ function App() {
         )}
       </div>
 
-      {selectedTrack && !isSidebarCollapsed && (
+      {/* ✅ FIX: Always render Sidebar when track selected, but hide container when collapsed */}
+      {selectedTrack && (
         <div
           className={`
   fixed bottom-0 left-0 right-0 w-full z-[1003]
@@ -627,6 +628,7 @@ function App() {
 
   lg:fixed lg:top-0 lg:right-0 lg:bottom-0 lg:left-auto
   lg:w-96 lg:rounded-none lg:border-l border-[var(--border-color)]
+  ${isSidebarCollapsed ? 'lg:translate-x-full' : 'lg:translate-x-0'}
 `}
         >
           <button
