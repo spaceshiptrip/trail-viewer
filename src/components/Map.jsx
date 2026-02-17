@@ -10,7 +10,6 @@ import {
   Polyline,
   CircleMarker,
   LayersControl,
-  useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import DrawTrailMode from "./DrawTrailMode";
