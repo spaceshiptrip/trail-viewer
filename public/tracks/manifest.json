@@ -25,6 +25,14 @@
       "elevationGain": 2170
     },
     {
+      "file": "MammothLakes4.geojson",
+      "name": "Mammoth Lake 3.5",
+      "location": "",
+      "description": "",
+      "distance": 3.59,
+      "elevationGain": 1033
+    },
+    {
       "file": "MarshallCanyonBigLoop12.geojson",
       "name": "Marshall Canyon Big Loop 12",
       "location": "Claremont Hills Regional Park, Claremont, CA",
