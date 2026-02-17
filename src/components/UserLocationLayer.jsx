@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { GEO_STATUS } from '../hooks/useGeolocation';
+import { useMap } from 'react-leaflet';
 
 /**
  * UserLocationLayer
@@ -20,6 +21,8 @@ export default function UserLocationLayer({ position, status, followMe = false }
   const markerRef     = useRef(null); // Blue dot marker
   const accuracyRef   = useRef(null); // Accuracy circle
 
+  const map = useMap();
+
   useEffect(() => {
     // Nothing to draw yet
     if (!position || status !== GEO_STATUS.WATCHING) {
@@ -32,7 +35,7 @@ export default function UserLocationLayer({ position, status, followMe = false }
     }
 
     // We need the map — bail if not ready
-    const map = mapInstanceRef.current;  // ← Use imported ref
+    //const map = mapInstanceRef.current;  // ← Use imported ref
     if (!map) return;
 
     const latlng = [position.lat, position.lng];
