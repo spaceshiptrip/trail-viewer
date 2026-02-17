@@ -201,3 +201,11 @@
 .trail-card:nth-child(3) { animation-delay: 0.3s; }
 .trail-card:nth-child(4) { animation-delay: 0.4s; }
 .trail-card:nth-child(5) { animation-delay: 0.5s; }
+
+
+/* GPS pulse animation */
+@keyframes gpsPulse {
+  0%   { transform: scale(0.8); opacity: 0.8; }
+  70%  { transform: scale(2.2); opacity: 0;   }
+  100% { transform: scale(2.2); opacity: 0;   }
+}

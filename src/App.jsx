@@ -5,6 +5,8 @@ import Sidebar from "./components/Sidebar";
 import ThemeToggle from "./components/ThemeToggle";
 import { calculateDistance, calculateElevationGain } from "./utils";
 import CesiumView from "./components/CesiumView";
+import useGeolocation from "./hooks/useGeolocation";
+import GpsButton from "./components/GpsButton";
 
 // Max number of tracks in browser memory
 const MAX_CACHED_TRACKS = 4;
@@ -37,14 +39,29 @@ function App() {
     () => localStorage.getItem("mapMode") || "2d",
   ); // "2d" | "3d"
 
+  const {
+    status: gpsStatus,
+    position: gpsPosition,
+    error: gpsError,
+    startWatching,
+    stopWatching,
+  } = useGeolocation();
+
+  const [followMe, setFollowMe] = useState(false);
+
   // ✅ NEW: peaks data for 3D view
   const [peaks, setPeaks] = useState([]);
 
-
   // ✅ NEW: Peak display settings
-  const [showPeaks, setShowPeaks] = useState(() => localStorage.getItem("showPeaks") !== "false");
-  const [showPeakLabels, setShowPeakLabels] = useState(() => localStorage.getItem("showPeakLabels") !== "false");
-  const [peakRadius, setPeakRadius] = useState(() => Number(localStorage.getItem("peakRadius")) || 10); // miles
+  const [showPeaks, setShowPeaks] = useState(
+    () => localStorage.getItem("showPeaks") !== "false",
+  );
+  const [showPeakLabels, setShowPeakLabels] = useState(
+    () => localStorage.getItem("showPeakLabels") !== "false",
+  );
+  const [peakRadius, setPeakRadius] = useState(
+    () => Number(localStorage.getItem("peakRadius")) || 10,
+  ); // miles
   const [showSettings, setShowSettings] = useState(false);
 
   // ✅ Ensure Leaflet always receives the selectedTrack in its "tracks" list
@@ -496,9 +513,10 @@ function App() {
         <button
           onClick={() => setMapMode("2d")}
           className={`px-3 py-2 rounded-lg border text-sm shadow
-            ${mapMode === "2d"
-              ? "bg-[var(--accent-primary)] text-black border-transparent"
-              : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
+            ${
+              mapMode === "2d"
+                ? "bg-[var(--accent-primary)] text-black border-transparent"
+                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
             }`}
           title="2D Leaflet"
         >
@@ -508,9 +526,10 @@ function App() {
         <button
           onClick={() => setMapMode("3d")}
           className={`px-3 py-2 rounded-lg border text-sm shadow
-            ${mapMode === "3d"
-              ? "bg-[var(--accent-primary)] text-black border-transparent"
-              : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
+            ${
+              mapMode === "3d"
+                ? "bg-[var(--accent-primary)] text-black border-transparent"
+                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
             }`}
           title="3D Terrain"
         >
@@ -525,7 +544,12 @@ function App() {
               className="p-2 rounded-lg border bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110 shadow"
               title="Settings"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <circle cx="12" cy="5" r="1.5" fill="currentColor" />
                 <circle cx="12" cy="12" r="1.5" fill="currentColor" />
                 <circle cx="12" cy="19" r="1.5" fill="currentColor" />
@@ -537,7 +561,9 @@ function App() {
               <div className="absolute top-12 right-0 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-lg p-3 min-w-[220px]">
                 <div className="space-y-3">
                   <label className="flex items-center justify-between cursor-pointer">
-                    <span className="text-sm text-[var(--text-primary)]">Show Peaks</span>
+                    <span className="text-sm text-[var(--text-primary)]">
+                      Show Peaks
+                    </span>
                     <input
                       type="checkbox"
                       checked={showPeaks}
@@ -546,8 +572,16 @@ function App() {
                     />
                   </label>
 
-                  <label className="flex items-center justify-between cursor-pointer" style={{ opacity: showPeaks ? 1 : 0.5, pointerEvents: showPeaks ? 'auto' : 'none' }}>
-                    <span className="text-sm text-[var(--text-primary)]">Show Peak Labels</span>
+                  <label
+                    className="flex items-center justify-between cursor-pointer"
+                    style={{
+                      opacity: showPeaks ? 1 : 0.5,
+                      pointerEvents: showPeaks ? "auto" : "none",
+                    }}
+                  >
+                    <span className="text-sm text-[var(--text-primary)]">
+                      Show Peak Labels
+                    </span>
                     <input
                       type="checkbox"
                       checked={showPeakLabels}
@@ -557,7 +591,12 @@ function App() {
                     />
                   </label>
 
-                  <div style={{ opacity: showPeaks ? 1 : 0.5, pointerEvents: showPeaks ? 'auto' : 'none' }}>
+                  <div
+                    style={{
+                      opacity: showPeaks ? 1 : 0.5,
+                      pointerEvents: showPeaks ? "auto" : "none",
+                    }}
+                  >
                     <label className="block text-sm text-[var(--text-primary)] mb-1">
                       Peak Radius: {peakRadius} mi
                     </label>
@@ -598,6 +637,9 @@ function App() {
             sidebarOpen={!!selectedTrack && !isSidebarCollapsed}
             isSidebarCollapsed={isSidebarCollapsed}
             trackListCollapsed={isTrackListCollapsed}
+            userPosition={gpsPosition}
+            userStatus={gpsStatus}
+            followMe={followMe}
           />
         ) : (
           <CesiumView
@@ -616,6 +658,21 @@ function App() {
             style={{ width: "100%", height: "100%" }}
           />
         )}
+
+  {/* GPS Button - bottom right over the map */}
+  {mapMode === "2d" && (
+    <div className="absolute bottom-6 right-4 z-[1003]">
+      <GpsButton
+        status={gpsStatus}
+        position={gpsPosition}
+        error={gpsError}
+        onStart={startWatching}
+        onStop={stopWatching}
+        followMe={followMe}
+        onToggleFollow={() => setFollowMe(f => !f)}
+      />
+    </div>
+  )}
       </div>
 
       {/* ✅ FIX: Always render Sidebar when track selected, but hide container when collapsed */}
@@ -628,7 +685,7 @@ function App() {
 
   lg:fixed lg:top-0 lg:right-0 lg:bottom-0 lg:left-auto
   lg:w-96 lg:rounded-none lg:border-l border-[var(--border-color)]
-  ${isSidebarCollapsed ? 'lg:translate-x-full' : 'lg:translate-x-0'}
+  ${isSidebarCollapsed ? "lg:translate-x-full" : "lg:translate-x-0"}
 `}
         >
           <button
