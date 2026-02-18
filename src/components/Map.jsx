@@ -24,9 +24,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Module-level ref for UserLocationLayer to access map instance
-export const mapInstanceRef = { current: null };
-
 // Custom start marker icon (green)
 const startIcon = new L.Icon({
   iconUrl:
@@ -416,9 +413,6 @@ export default function Map(props = {}) {
     const map = useMap();
 
     useEffect(() => {
-      // Set map instance for UserLocationLayer
-      mapInstanceRef.current = map;
-
       if (!selectedTrack || !onMapHover) return;
 
       const coords =
