@@ -181,6 +181,8 @@ function App() {
           distance: track.distance,
           elevationGain: track.elevationGain,
           filename: track.file,
+          file: track.file, // "MammothLakes4.geojson"
+          gpxFile: track.file.replace(/\.geojson$/i, ".gpx"), // "MammothLakes4.gpx"
         },
         isStub: true,
       }));
@@ -659,20 +661,20 @@ function App() {
           />
         )}
 
-  {/* GPS Button - bottom right over the map */}
-  {mapMode === "2d" && (
-    <div className="absolute bottom-6 right-4 z-[1003]">
-      <GpsButton
-        status={gpsStatus}
-        position={gpsPosition}
-        error={gpsError}
-        onStart={startWatching}
-        onStop={stopWatching}
-        followMe={followMe}
-        onToggleFollow={() => setFollowMe(f => !f)}
-      />
-    </div>
-  )}
+        {/* GPS Button - bottom right over the map */}
+        {mapMode === "2d" && (
+          <div className="absolute bottom-6 right-4 z-[1003]">
+            <GpsButton
+              status={gpsStatus}
+              position={gpsPosition}
+              error={gpsError}
+              onStart={startWatching}
+              onStop={stopWatching}
+              followMe={followMe}
+              onToggleFollow={() => setFollowMe((f) => !f)}
+            />
+          </div>
+        )}
       </div>
 
       {/* ✅ FIX: Always render Sidebar when track selected, but hide container when collapsed */}

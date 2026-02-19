@@ -1,23 +1,33 @@
-import { useState } from 'react';
-import { Search, Mountain, TrendingUp, Download, Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { Search, Mountain, TrendingUp, Download, Loader2 } from "lucide-react";
 
 function gpxUrlForTrack(track) {
-  const name = track?.properties?.name || '';
-  return `${import.meta.env.BASE_URL}tracks/gpx/${encodeURIComponent(name)}.gpx`;
+  const gpxFile = track?.properties?.gpxFile || "";
+  return `${import.meta.env.BASE_URL}tracks/gpx/${encodeURIComponent(gpxFile)}`;
 }
 
-export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeToggle, loadingTrack }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const filteredTracks = tracks.filter(track => {
-    const name = track.properties.name?.toLowerCase() || '';
-    const location = track.properties.location?.toLowerCase() || '';
-    const description = track.properties.description?.toLowerCase() || '';
+export default function TrackList({
+  tracks,
+  selectedTrack,
+  onTrackSelect,
+  themeToggle,
+  loadingTrack,
+}) {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredTracks = tracks.filter((track) => {
+    const name = track.properties.name?.toLowerCase() || "";
+    const location = track.properties.location?.toLowerCase() || "";
+    const description = track.properties.description?.toLowerCase() || "";
     const search = searchTerm.toLowerCase();
-    
-    return name.includes(search) || location.includes(search) || description.includes(search);
+
+    return (
+      name.includes(search) ||
+      location.includes(search) ||
+      description.includes(search)
+    );
   });
-  
+
   return (
     <div className="h-full flex flex-col bg-[var(--bg-secondary)]">
       {/* Header */}
@@ -29,10 +39,10 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
           {themeToggle}
         </div>
         <p className="text-[var(--text-secondary)] text-sm">
-          {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'} loaded
+          {tracks.length} {tracks.length === 1 ? "track" : "tracks"} loaded
         </p>
       </div>
-      
+
       {/* Search */}
       <div className="p-4 border-b border-[var(--border-color)]">
         <div className="relative">
@@ -48,7 +58,7 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
           />
         </div>
       </div>
-      
+
       {/* Loading Indicator */}
       {loadingTrack && (
         <div className="px-4 py-2 bg-[var(--accent-primary)] bg-opacity-10 border-b border-[var(--accent-primary)] border-opacity-30">
@@ -58,7 +68,7 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
           </div>
         </div>
       )}
-      
+
       {/* Track List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {filteredTracks.length === 0 ? (
@@ -84,8 +94,8 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
               onClick={() => onTrackSelect(track)}
               className={`trail-card fade-in-up ${
                 selectedTrack?.properties.id === track.properties.id
-                  ? 'border-[var(--accent-primary)] bg-[var(--bg-tertiary)]'
-                  : ''
+                  ? "border-[var(--accent-primary)] bg-[var(--bg-tertiary)]"
+                  : ""
               }`}
               style={{ animationDelay: `${idx * 0.05}s` }}
             >
@@ -94,13 +104,13 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
                   {track.properties.name || `Track ${idx + 1}`}
                 </h3>
               </div>
-              
+
               {track.properties.location && (
                 <p className="text-[var(--text-secondary)] text-sm mb-3">
                   {track.properties.location}
                 </p>
               )}
-              
+
               <div className="flex items-center justify-between text-sm">
                 {/* left side stats */}
                 <div className="flex gap-4">
@@ -108,7 +118,7 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
                     <div className="flex items-center gap-1.5 text-[var(--accent-primary)]">
                       <Mountain className="w-4 h-4" />
                       <span className="font-mono font-medium">
-                        {track.properties.distance?.toFixed(2) || '0'} mi
+                        {track.properties.distance?.toFixed(2) || "0"} mi
                       </span>
                     </div>
                   )}
@@ -126,7 +136,7 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
                 {/* right side download icon */}
                 <a
                   href={gpxUrlForTrack(track)}
-                  download
+                  download={track?.properties?.gpxFile}
                   title="Download GPX"
                   aria-label="Download GPX"
                   onClick={(e) => e.stopPropagation()}
@@ -135,7 +145,7 @@ export default function TrackList({ tracks, selectedTrack, onTrackSelect, themeT
                   <Download className="w-4 h-4" />
                 </a>
               </div>
-              
+
               {track.properties.description && (
                 <p className="text-[var(--text-secondary)] text-sm mt-3 line-clamp-2">
                   {track.properties.description}
