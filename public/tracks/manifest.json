@@ -17,6 +17,14 @@
       "elevationGain": 1858
     },
     {
+      "file": "Home2TeePee-FullTypical8.geojson",
+      "name": "Home2TeePee Typical Long 7.64mi",
+      "location": "La Cañada, CA",
+      "description": "Nice Mid distance going to Foothill and up La Canada Open Space Trail to the Teepee then back down with some rollers. Distance: 7.64 miles, Ele Gain: 2268 feet",
+      "distance": 7.64,
+      "elevationGain": 2337
+    },
+    {
       "file": "La_Verne_to_Potato_Mtn_20.geojson",
       "name": "LaVerne2PotatoMtn20",
       "location": "",
