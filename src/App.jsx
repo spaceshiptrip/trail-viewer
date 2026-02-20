@@ -664,7 +664,7 @@ function App() {
           <div
             className="absolute right-4 z-[1003]"
             style={{
-              bottom: 'max(24px, env(safe-area-inset-bottom, 24px))'  // Respects iOS notch/toolbar
+              bottom: 'max(24px, calc(100vh - 100dvh + 24px + env(safe-area-inset-bottom, 0px)))'
             }}
           >
             <GpsButton
