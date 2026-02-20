@@ -164,6 +164,23 @@ function App() {
     setTheme((prevTheme) => (prevTheme === "dark" ? "light" : "dark"));
   };
 
+  // At top of App component, before the return
+  const getGpsButtonBottom = () => {
+    if (typeof window === 'undefined') return '80px';
+
+    const ua = window.navigator.userAgent.toLowerCase();
+    const isSafari = ua.includes('safari') && !ua.includes('chrome') && !ua.includes('crios') && !ua.includes('fxios');
+
+    // Desktop
+    if (window.innerWidth >= 1024) return '24px';
+
+    // Mobile Safari needs extra space
+    if (isSafari) return '120px';
+
+    // Mobile Brave/Chrome/Firefox
+    return '80px';
+  };
+
   const loadManifest = async () => {
     try {
       const url = `${import.meta.env.BASE_URL}tracks/manifest.json`;
@@ -663,9 +680,7 @@ function App() {
         {mapMode === "2d" && (
           <div
             className="absolute right-4 z-[1003]"
-            style={{
-              bottom: 'max(24px, env(safe-area-inset-bottom, 24px))'  // Respects iOS notch/toolbar
-            }}
+            style={{ bottom: getGpsButtonBottom() }}
           >
             <GpsButton
               status={gpsStatus}
