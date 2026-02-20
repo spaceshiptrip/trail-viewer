@@ -2,6 +2,7 @@
 # Node / Build
 # =========================
 node_modules
+dist/
 dist
 dist-ssr
 coverage

@@ -515,10 +515,9 @@ function App() {
         <button
           onClick={() => setMapMode("2d")}
           className={`px-3 py-2 rounded-lg border text-sm shadow
-            ${
-              mapMode === "2d"
-                ? "bg-[var(--accent-primary)] text-black border-transparent"
-                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
+            ${mapMode === "2d"
+              ? "bg-[var(--accent-primary)] text-black border-transparent"
+              : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
             }`}
           title="2D Leaflet"
         >
@@ -528,10 +527,9 @@ function App() {
         <button
           onClick={() => setMapMode("3d")}
           className={`px-3 py-2 rounded-lg border text-sm shadow
-            ${
-              mapMode === "3d"
-                ? "bg-[var(--accent-primary)] text-black border-transparent"
-                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
+            ${mapMode === "3d"
+              ? "bg-[var(--accent-primary)] text-black border-transparent"
+              : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110"
             }`}
           title="3D Terrain"
         >
@@ -663,7 +661,12 @@ function App() {
 
         {/* GPS Button - bottom right over the map */}
         {mapMode === "2d" && (
-          <div className="absolute bottom-6 right-4 z-[1003]">
+          <div
+            className="absolute right-4 z-[1003]"
+            style={{
+              bottom: 'max(24px, env(safe-area-inset-bottom, 24px))'  // Respects iOS notch/toolbar
+            }}
+          >
             <GpsButton
               status={gpsStatus}
               position={gpsPosition}

@@ -9,6 +9,7 @@ import {
   FileDown,
   Check,
 } from "lucide-react";
+import BUILD_INFO from "../build-info";
 
 function gpxUrlForTrack(track) {
   const gpxFile = track?.properties?.gpxFile || "";
@@ -70,20 +71,16 @@ export default function TrackList({
       const url = gpxUrlForTrack(track);
       const response = await fetch(url);
 
-      // ✅ IMPORTANT: fail fast if server returned 404/500/etc
       if (!response.ok) {
         throw new Error(`Failed to fetch GPX (${response.status}) from ${url}`);
       }
 
-      // ✅ Optional but helpful: prevent downloading HTML fallback
       const contentType = response.headers.get("content-type") || "";
       if (contentType.includes("text/html")) {
         throw new Error(`Got HTML instead of GPX from ${url}`);
       }
 
       const blob = await response.blob();
-
-      // ✅ Create a blob URL and trigger download
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = blobUrl;
@@ -109,9 +106,8 @@ export default function TrackList({
         error: error.message || "Download failed. Please try again.",
       }));
 
-      // Auto-close error after 3 seconds
       setTimeout(() => setDownloadModal(null), 3000);
-    } // catch
+    }
   };
 
   const handleCloseModal = () => {
@@ -130,9 +126,14 @@ export default function TrackList({
           </h1>
           {themeToggle}
         </div>
-        <p className="text-[var(--text-secondary)] text-sm">
-          {tracks.length} {tracks.length === 1 ? "track" : "tracks"} loaded
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[var(--text-secondary)] text-sm">
+            {tracks.length} {tracks.length === 1 ? "track" : "tracks"} loaded
+          </p>
+          <p className="text-[var(--text-secondary)] text-xs font-mono">
+            Build: {BUILD_INFO?.build || "dev"}
+          </p>
+        </div>
       </div>
 
       {/* Search */}
