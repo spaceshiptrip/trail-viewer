@@ -27,10 +27,10 @@ export default function GpsButton({
   followMe,
   onToggleFollow,
 }) {
-  const isActive  = status === GEO_STATUS.WATCHING;
+  const isActive = status === GEO_STATUS.WATCHING;
   const isPending = status === GEO_STATUS.PENDING;
-  const isDenied  = status === GEO_STATUS.DENIED;
-  const isError   = status === GEO_STATUS.ERROR;
+  const isDenied = status === GEO_STATUS.DENIED;
+  const isError = status === GEO_STATUS.ERROR;
 
   const handleClick = () => {
     if (isActive || isPending) {
@@ -135,17 +135,17 @@ export default function GpsButton({
         <button
           onClick={handleClick}
           title={
-            isActive  ? 'Stop GPS' :
-            isPending ? 'Waiting for permission…' :
-            isDenied  ? 'Location denied — tap for info' :
-            isError   ? 'GPS error — tap to retry' :
-            'Show my location'
+            isActive ? 'Stop GPS' :
+              isPending ? 'Waiting for permission…' :
+                isDenied ? 'Location denied — tap for info' :
+                  isError ? 'GPS error — tap to retry' :
+                    'Show my location'
           }
           className={buttonClass()}
         >
           {isPending ? <SpinnerIcon /> :
-           isDenied || isError ? <ErrorIcon /> :
-           <LocationIcon />}
+            isDenied || isError ? <ErrorIcon /> :
+              <LocationIcon />}
         </button>
       </div>
     </div>
