@@ -17,6 +17,14 @@
       "elevationGain": 1858
     },
     {
+      "file": "Home2BrownMtnViaGouldKenBurton18.geojson",
+      "name": "Home to Top of Brown Mtn via Gould, Fern Truck, Ken Burton 18",
+      "location": "Pasadena, CA",
+      "description": "Long route from home up Angeles Crest and down to Gould Campground.  From there hang a left on Gabriellino to the waterfall, ascent Fern Truck and Ken Burton to top of Brown Mtn.  Distance (mi): 17.83, Ascent (ft): 4590, Peak Ele (ft): 4470",
+      "distance": 17.84,
+      "elevationGain": 5368
+    },
+    {
       "file": "Home2TeePee-FullTypical8.geojson",
       "name": "Home2TeePee Typical Long 7.64mi",
       "location": "La Cañada, CA",
