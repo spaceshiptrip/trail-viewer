@@ -41,6 +41,14 @@
       "elevationGain": 6065
     },
     {
+      "file": "LaVerne2SanDimasFireStation-8.geojson",
+      "name": "La Verne to San Dimas Fire Station - Hills 8",
+      "location": "La Verne, CA",
+      "description": "Street route from La Verne up San Dimas Fire Station and routes back.",
+      "distance": 7.95,
+      "elevationGain": 1642
+    },
+    {
       "file": "La_Verne_to_Potato_Mtn_20.geojson",
       "name": "La Verne to Potato Mountain via Marshall Canyon, Claremont Hills - 20 miles",
       "location": "Claremont, CA",
