@@ -45,17 +45,11 @@
   },
   { "name": "Verdugo Peak", "lat": 34.217, "lon": -118.283, "elevation": 3126 },
   { "name": "Mt Lukens", "lat": 34.269, "lon": -118.239, "elevation": 5075 },
-  { 
-    "name": "Mt Lowe", 
-    "lat": 34.2315393, 
-    "lon": -118.1058334,
-    "elevation": 5604 
-  },
   {
-    "name": "San Gorgonio",
-    "lat": 34.0992,
-    "lon": -116.8249,
-    "elevation": 11503
+    "name": "Mt Lowe",
+    "lat": 34.2315393,
+    "lon": -118.1058334,
+    "elevation": 5604
   },
   { "name": "Big Bear", "lat": 34.2267, "lon": -116.8602, "elevation": 8805 },
   {
@@ -114,8 +108,14 @@
   },
   {
     "name": "Saddle Peak",
-    "lat": 34.0780264, 
+    "lat": 34.0780264,
     "lon": -118.6550579,
     "elevation": 2791
+  },
+  {
+    "name": "Brown Mountain",
+    "lat": 34.2368386,
+    "lon": -118.1470512,
+    "elevation": 4471
   }
 ]
