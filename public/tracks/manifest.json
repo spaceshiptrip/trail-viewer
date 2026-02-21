@@ -25,6 +25,14 @@
       "elevationGain": 2337
     },
     {
+      "file": "JPL2BrownMtn-Top15.geojson",
+      "name": "JPL East Lot to Top of Brown Mtn. 14.6 mi",
+      "location": "Pasadena, CA",
+      "description": "To top of Brown from East Lot.  Total Distance (mi): 14.64, Total Ascent (ft): 5079",
+      "distance": 14.65,
+      "elevationGain": 6065
+    },
+    {
       "file": "La_Verne_to_Potato_Mtn_20.geojson",
       "name": "LaVerne2PotatoMtn20",
       "location": "",
