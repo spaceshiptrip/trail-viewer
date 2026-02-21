@@ -1,8 +1,9 @@
 {
   "type": "Feature",
   "properties": {
-    "name": "LaVerne2PotatoMtn20",
-    "description": ""
+    "name": "La Verne to Potato Mountain via Marshall Canyon, Claremont Hills - 20 miles", 
+    "description": "Through Marshall Canyon route but goes further to Potato Mountain then down to the Pagoda. Distance (mi): 19.31, Ascent (ft): 2170",
+    "location": "Claremont, CA"
   },
   "geometry": {
     "type": "LineString",

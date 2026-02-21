@@ -42,9 +42,9 @@
     },
     {
       "file": "La_Verne_to_Potato_Mtn_20.geojson",
-      "name": "LaVerne2PotatoMtn20",
-      "location": "",
-      "description": "",
+      "name": "La Verne to Potato Mountain via Marshall Canyon, Claremont Hills - 20 miles",
+      "location": "Claremont, CA",
+      "description": "Through Marshall Canyon route but goes further to Potato Mountain then down to the Pagoda. Distance (mi): 19.31, Ascent (ft): 2170",
       "distance": 19.31,
       "elevationGain": 2170
     },

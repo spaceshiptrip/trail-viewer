@@ -1,74 +1,21 @@
 [
   {
-    "name": "Mount Whitney",
-    "lat": 36.5785,
-    "lon": -118.2923,
-    "elevation": 14505
+    "name": "Big Bear",
+    "lat": 34.2267,
+    "lon": -116.8602,
+    "elevation": 8805
   },
   {
-    "name": "Mount Baldy",
-    "lat": 34.2894,
-    "lon": -117.6462,
-    "elevation": 10064
-  },
-  {
-    "name": "San Gorgonio Mountain",
-    "lat": 34.0992,
-    "lon": -116.8249,
-    "elevation": 11503
-  },
-
-  {
-    "name": "Ontario Peak",
-    "lat": 34.2278,
-    "lon": -117.6231,
-    "elevation": 8693
+    "name": "Brown Mountain",
+    "lat": 34.2368386,
+    "lon": -118.1470512,
+    "elevation": 4471
   },
   {
     "name": "Etiwanda Peak",
     "lat": 34.2283,
     "lon": -117.5725,
     "elevation": 8662
-  },
-  { "name": "Mt Wilson", "lat": 34.2238, "lon": -118.0616, "elevation": 5713 },
-  {
-    "name": "Strawberry Peak",
-    "lat": 34.2836,
-    "lon": -118.1203,
-    "elevation": 6167
-  },
-  {
-    "name": "Mt Disappointment",
-    "lat": 34.2467,
-    "lon": -118.1048,
-    "elevation": 5963
-  },
-  { "name": "Verdugo Peak", "lat": 34.217, "lon": -118.283, "elevation": 3126 },
-  { "name": "Mt Lukens", "lat": 34.269, "lon": -118.239, "elevation": 5075 },
-  {
-    "name": "Mt Lowe",
-    "lat": 34.2315393,
-    "lon": -118.1058334,
-    "elevation": 5604
-  },
-  { "name": "Big Bear", "lat": 34.2267, "lon": -116.8602, "elevation": 8805 },
-  {
-    "name": "Snow Summit",
-    "lat": 34.2286,
-    "lon": -116.8911,
-    "elevation": 8174
-  },
-  {
-    "name": "Snow Valley",
-    "lat": 34.2234,
-    "lon": -117.0374,
-    "elevation": 7841
-  },
-  {
-    "name": "Mammoth Mountain",
-    "lat": 37.6306,
-    "lon": -119.0326,
-    "elevation": 11059
   },
   {
     "name": "Iron Mountain",
@@ -77,10 +24,83 @@
     "elevation": 7938
   },
   {
-    "name": "Sunset Peak",
-    "lat": 34.216666,
-    "lon": -117.6893287,
-    "elevation": 5653
+    "name": "Johnstone Peak",
+    "lat": 34.1608405,
+    "lon": -117.797559,
+    "elevation": 3169,
+    "description": "Above San Dimas, towers can be seen from La Verne."
+  },
+  {
+    "name": "Mammoth Mountain",
+    "lat": 37.6306,
+    "lon": -119.0326,
+    "elevation": 11059
+  },
+  {
+    "name": "Mount Baldy",
+    "lat": 34.2894,
+    "lon": -117.6462,
+    "elevation": 10064
+  },
+  {
+    "name": "Mount Orizaba",
+    "lat": 33.3769725,
+    "lon": -118.4181319,
+    "elevation": 2096
+  },
+  {
+    "name": "Mount Pinos",
+    "lat": 34.812818,
+    "lon": -119.1453967,
+    "elevation": 8847
+  },
+  {
+    "name": "Mount Whitney",
+    "lat": 36.5785,
+    "lon": -118.2923,
+    "elevation": 14505
+  },
+  {
+    "name": "Mt Disappointment",
+    "lat": 34.2467,
+    "lon": -118.1048,
+    "elevation": 5963
+  },
+  {
+    "name": "Mt Lowe",
+    "lat": 34.2315393,
+    "lon": -118.1058334,
+    "elevation": 5604
+  },
+  {
+    "name": "Mt Lukens",
+    "lat": 34.269,
+    "lon": -118.239,
+    "elevation": 5075
+  },
+  {
+    "name": "Mt Wilson",
+    "lat": 34.2238,
+    "lon": -118.0616,
+    "elevation": 5713
+  },
+  {
+    "name": "Ontario Peak",
+    "lat": 34.2278,
+    "lon": -117.6231,
+    "elevation": 8693
+  },
+  {
+    "name": "Saddle Peak",
+    "lat": 34.0780264,
+    "lon": -118.6550579,
+    "elevation": 2791
+  },
+  {
+    "name": "San Gorgonio Mountain",
+    "lat": 34.0992,
+    "lon": -116.8249,
+    "elevation": 11503
   },
   {
     "name": "San Jacinto Peak",
@@ -95,27 +115,37 @@
     "elevation": 5689
   },
   {
-    "name": "Mount Pinos",
-    "lat": 34.812818,
-    "lon": -119.1453967,
-    "elevation": 8847
+    "name": "Snow Summit",
+    "lat": 34.2286,
+    "lon": -116.8911,
+    "elevation": 8174
   },
   {
-    "name": "Mount Orizaba",
-    "lat": 33.3769725,
-    "lon": -118.4181319,
-    "elevation": 2096
+    "name": "Snow Valley",
+    "lat": 34.2234,
+    "lon": -117.0374,
+    "elevation": 7841
   },
   {
+    "name": "Strawberry Peak",
+    "lat": 34.2836,
+    "lon": -118.1203,
+    "elevation": 6167
+  },
+  {
+    "name": "Sunset Peak",
+    "lat": 34.216666,
+    "lon": -117.6893287,
+    "elevation": 5653
+  },
+  {
+    "name": "Verdugo Peak",
+    "lat": 34.217,
+    "lon": -118.283,
+    "elevation": 3126
     "name": "Saddle Peak",
     "lat": 34.0780264,
     "lon": -118.6550579,
     "elevation": 2791
-  },
-  {
-    "name": "Brown Mountain",
-    "lat": 34.2368386,
-    "lon": -118.1470512,
-    "elevation": 4471
   }
 ]
