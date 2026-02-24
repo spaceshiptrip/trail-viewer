@@ -952,6 +952,8 @@ function ExpandedGraphOverlay({
             />
             <YAxis stroke="var(--text-secondary)" tick={{ fill: "var(--text-secondary)", fontSize: 13 }} tickFormatter={(v) => Math.round(v)} width={52} />
             <Tooltip
+              position={{ y: 3 }}  // 5px from top, x follows cursor horizontally
+              offset={30}
               contentStyle={{ backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border-color)", borderRadius: "8px", color: "var(--text-primary)" }}
               labelFormatter={(v) => `${v.toFixed(2)} mi`}
               formatter={(value, name, payload) => {
@@ -963,7 +965,7 @@ function ExpandedGraphOverlay({
                 return [`${elevationFt} ft\n${gradeStr}`, "Elevation / Grade"];
               }}
             />
-            <Line type="monotone" dataKey="elevation" stroke="var(--accent-primary)" strokeWidth={3} dot={false} activeDot={{ r: 7, fill: "var(--accent-primary)" }} />
+            <Line type="monotone" dataKey="elevation" stroke="var(--accent-primary)" strokeWidth={7} dot={false} activeDot={{ r: 7, fill: "var(--accent-primary)" }} />
 
             {/* Grade overlay (same as sidebar) */}
             {showGradeOverlay && <Customized component={renderGradeOverlay} />}
