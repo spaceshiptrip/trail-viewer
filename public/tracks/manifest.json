@@ -17,6 +17,22 @@
       "elevationGain": 1858
     },
     {
+      "file": "Big Dalton Glendora Trail 10.geojson",
+      "name": "Big Dalton Glendora Trail 10",
+      "location": "Glendora, CA",
+      "description": "Lower Monroe Truck Trail to Glendora Mtn. Road start of Upper Monroe Truck Trail.",
+      "distance": 10.93,
+      "elevationGain": 3472
+    },
+    {
+      "file": "Home2Athenaeum-OSM_Data-9.geojson",
+      "name": "Athenaeum 9",
+      "location": "",
+      "description": "",
+      "distance": 9.27,
+      "elevationGain": 204
+    },
+    {
       "file": "Home2BrownMtnViaGouldKenBurton18.geojson",
       "name": "Home to Top of Brown Mtn via Gould, Fern Truck, Ken Burton 18",
       "location": "Pasadena, CA",
