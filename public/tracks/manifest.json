@@ -41,6 +41,14 @@
       "elevationGain": 6065
     },
     {
+      "file": "La Verne Peak through San Dimas 10.geojson",
+      "name": "La Verne Peak through San Dimas 10",
+      "location": "La Verne, CA",
+      "description": "Lollypop from La Verne up the roads to San Dimas Fire Station, then bushwack to get on Sunset Ridge Trail without going through private property.  Then pass the beehives and up the to of ridge.  Return through steepness and back.",
+      "distance": 9.68,
+      "elevationGain": 3240
+    },
+    {
       "file": "LaVerne2SanDimasFireStation-8.geojson",
       "name": "La Verne to San Dimas Fire Station - Hills 8",
       "location": "La Verne, CA",
@@ -71,6 +79,14 @@
       "description": "Starts Oak Mesa Park through Marshall Canyon and loops around Claremont Hills.",
       "distance": 11.97,
       "elevationGain": 1740
+    },
+    {
+      "file": "Mochie Short Route 2.6.geojson",
+      "name": "Mochie's Short Route 2.6",
+      "location": "La Cañada, CA",
+      "description": "When there isn't the typical 5 miler for her, this is a good alternative.",
+      "distance": 2.62,
+      "elevationGain": 301
     },
     {
       "file": "Mount_Wilson_via_Sierra_Madre_Jones_Peak_and_Bailey_Canyon_Loop.geojson",
