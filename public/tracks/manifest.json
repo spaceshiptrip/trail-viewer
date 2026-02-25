@@ -145,6 +145,14 @@
       "elevationGain": 3257
     },
     {
+      "file": "Rim-to-Rim-to-Rim_ South Kaibab, North Kaibab, Back.geojson",
+      "name": "Rim-to-Rim-to-Rim: South Kaibab, North Kaibab, Back",
+      "location": "Grand Canyon, AZ",
+      "description": "This route is a version of the infamous Rim-to-Rim-to-Rim (R2R2R) that is popular with backpackers and runners. This route goes down into the canyon on the South Kaibab Trail, crosses the river, then ascends out of the canyon on the North Kaibab Trail. Hikers/runners then turn around and descend back into the canyon on the North Kaibab Trail, cross the river, and return to the South Rim via the Bright Angel Trail. The Bright Angel Trail and South Kaibab Trail can be interchanged.\n\nThis is an incredibly challenging.",
+      "distance": 41.01,
+      "elevationGain": 18978
+    },
+    {
       "file": "Sunshine2VerdugoPeak_12.geojson",
       "name": "Sunshine Drive to Verdugo Peak 12",
       "location": "Verdugo Mtn, Glendale, CA",
