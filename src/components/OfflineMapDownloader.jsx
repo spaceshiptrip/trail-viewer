@@ -73,7 +73,12 @@ export default function OfflineMapDownloader({ track }) {
       bounds.west -= padding;
 
       // Download tiles for zoom levels 10-15
-      const zoomLevels = [10, 11, 12, 13, 14, 15];
+      // **Zoom level reference**:
+      // - **Level 10**: Regional view (shows 50+ mile area)
+      // - **Level 12**: Area view (shows 10-20 mile area)
+      // - **Level 14**: Trail view (shows 2-5 mile area)
+      // - **Level 16**: Detail view (shows 0.5-1 mile area, ~2 feet per pixel)
+      const zoomLevels = [13, 14, 15, 16, 17];
       const tileUrls = [];
 
       for (const zoom of zoomLevels) {
@@ -109,7 +114,7 @@ export default function OfflineMapDownloader({ track }) {
 
         completed += batch.length;
         setProgress(Math.round((completed / tileUrls.length) * 100));
-        
+
         // Throttle to avoid rate limiting
         if (i + batchSize < tileUrls.length) {
           await new Promise(resolve => setTimeout(resolve, 500));
