@@ -6,7 +6,10 @@ import ThemeToggle from "./components/ThemeToggle";
 import { calculateDistance, calculateElevationGain } from "./utils";
 import CesiumView from "./components/CesiumView";
 import useGeolocation from "./hooks/useGeolocation";
+import useFullscreen from "./hooks/useFullscreen";
+
 import GpsButton from "./components/GpsButton";
+import { Maximize, Minimize } from 'lucide-react';
 
 // Max number of tracks in browser memory
 const MAX_CACHED_TRACKS = 4;
@@ -48,6 +51,8 @@ function App() {
   } = useGeolocation();
 
   const [followMe, setFollowMe] = useState(false);
+
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
 
   // ✅ NEW: peaks data for 3D view
   const [peaks, setPeaks] = useState([]);
@@ -551,6 +556,15 @@ function App() {
           title="3D Terrain"
         >
           3D
+        </button>
+
+        {/* NEW: Fullscreen Button */}
+        <button
+          onClick={toggleFullscreen}
+          className="p-2 rounded-lg border bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:brightness-110 shadow"
+          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
         </button>
 
         {/* Settings button - only show in 3D mode */}
