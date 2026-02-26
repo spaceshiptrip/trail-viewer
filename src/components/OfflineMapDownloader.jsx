@@ -52,8 +52,8 @@ export default function OfflineMapDownloader({ track }) {
 
     try {
       // Get track bounds
-      const coords = track.geometry.type === 'LineString'
-        ? track.geometry.coordinates
+      const coords = track.geometry.type === 'LineString' 
+        ? track.geometry.coordinates 
         : track.geometry.coordinates[0];
 
       const lats = coords.map(c => c[1]);
@@ -97,9 +97,9 @@ export default function OfflineMapDownloader({ track }) {
 
       for (let i = 0; i < tileUrls.length; i += batchSize) {
         const batch = tileUrls.slice(i, i + batchSize);
-
+        
         await Promise.all(
-          batch.map(url =>
+          batch.map(url => 
             fetch(url, { mode: 'cors' })
               .then(response => {
                 if (response.ok) {
@@ -124,14 +124,14 @@ export default function OfflineMapDownloader({ track }) {
       // Mark as downloaded
       const trackId = track.properties?.id || track.properties?.filename;
       localStorage.setItem(`offline-track-${trackId}`, new Date().toISOString());
-
+      
       setComplete(true);
       setIsDownloaded(true);
       console.log('✅ Offline download complete!');
-
+      
       // Update cache info
       await updateCacheInfo();
-
+      
       // Auto-reset after 3 seconds
       setTimeout(() => {
         setDownloading(false);
@@ -161,7 +161,7 @@ export default function OfflineMapDownloader({ track }) {
       await Promise.all(
         cacheNames.map(name => caches.delete(name))
       );
-
+      
       // Clear localStorage markers
       const keys = Object.keys(localStorage);
       keys.forEach(key => {
@@ -171,11 +171,11 @@ export default function OfflineMapDownloader({ track }) {
       });
 
       console.log('✅ Offline cache cleared!');
-
+      
       // Update UI
       setCacheSize({ used: 0, quota: cacheSize?.quota || 0 });
       setIsDownloaded(false);
-
+      
       // Reload to reinstall service worker
       setTimeout(() => {
         window.location.reload();
@@ -198,7 +198,7 @@ export default function OfflineMapDownloader({ track }) {
             Offline Maps
           </h3>
         </div>
-
+        
         {/* Cache size indicator */}
         {cacheSize && (
           <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
