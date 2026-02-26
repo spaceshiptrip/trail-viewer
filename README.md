@@ -16,6 +16,7 @@ A beautiful, interactive web application for visualizing and exploring hiking tr
 * 🎨 **Beautiful UI**: Custom dark/light theme with smooth animations
 * 🗂️ **Smart Caching**: LRU cache for fast track loading (max 4 tracks)
 * ⬇️ **GPX Downloads**: Download original GPX files with custom modal UI
+* ⬇️ **Tile Downloads**: Download 2D tiles for offline use
 * 🏗️ **Build Info**: Display build timestamp to verify deployed version
 
 ## Quick Start
@@ -513,6 +514,181 @@ npm run preview
 gh run list
 gh run watch
 ```
+
+
+## Offline Maps
+
+Trail Explorer supports offline map functionality, allowing users to download map tiles for specific trail areas and use them without an internet connection.
+
+### Features
+
+- **Automatic Caching**: Map tiles are automatically cached as you browse trails
+- **Manual Download**: Download entire trail areas for guaranteed offline access
+- **Cache Management**: View cache size and clear offline maps when needed
+- **Storage Tracking**: Visual indicators show which trails are available offline
+- **GPS Works Offline**: GPS location tracking continues to function without internet
+
+### Usage
+
+1. **View a trail** - Map tiles automatically cache as you browse
+2. **Download for offline** - Click "Download for Offline" in the sidebar to preload an entire trail area
+3. **Go offline** - Enable airplane mode or lose cell signal
+4. **Navigate** - GPS location tracking continues, cached tiles display normally
+
+### Storage Requirements
+
+- **Single trail area**: 50-200 MB (zoom levels 10-15)
+- **Desktop browsers**: 2-6 GB available
+- **Android**: 500 MB - 6 GB available
+- **iOS Safari**: 50-100 MB available (very limited)
+
+**Recommendation**: iOS users should download 1-2 trails maximum due to storage constraints.
+
+### Configuration
+
+#### Adjust Zoom Levels
+
+The default configuration downloads tiles for zoom levels 10-15, providing good detail while keeping download sizes reasonable. You can modify this in `src/components/OfflineMapDownloader.jsx`:
+
+```javascript
+// Line ~65
+const zoomLevels = [10, 11, 12, 13, 14, 15];
+```
+
+**Options**:
+- **Fewer levels** (e.g., `[12, 13, 14]`): Smaller download (20-80 MB), less detail when zoomed in/out
+- **More levels** (e.g., `[8, 9, 10, 11, 12, 13, 14, 15, 16]`): Larger download (200-500 MB), more detail at all zoom levels
+- **High detail only** (e.g., `[14, 15, 16]`): Small download (30-100 MB), only detailed view, no overview
+
+**Zoom level reference**:
+- **Level 10**: Regional view (shows 50+ mile area)
+- **Level 12**: Area view (shows 10-20 mile area)
+- **Level 14**: Trail view (shows 2-5 mile area)
+- **Level 16**: Detail view (shows 0.5-1 mile area, ~2 feet per pixel)
+
+#### Adjust Download Batch Size
+
+If downloads fail or timeout, reduce the batch size in `src/components/OfflineMapDownloader.jsx`:
+
+```javascript
+// Line ~80
+const batchSize = 6;  // Reduce to 3 or 4 if experiencing failures
+```
+
+#### Adjust Download Delay
+
+To comply with tile provider rate limits or reduce server load, increase the delay between batches:
+
+```javascript
+// Line ~95
+await new Promise(resolve => setTimeout(resolve, 500));  // Change to 1000 for slower downloads
+```
+
+### Technical Details
+
+**Architecture**:
+- Service Worker (`public/sw.js`) intercepts tile requests
+- Cache-first strategy for instant tile loading
+- Falls back to network if tile not cached
+- Automatic cache on successful network fetch
+
+**Cache Strategy**:
+1. Request for map tile
+2. Check browser cache
+3. If found: serve from cache (instant)
+4. If not found: fetch from network, cache response, serve to user
+
+**Offline Behavior**:
+- Cached tiles: Display normally
+- Uncached tiles: Show blank/placeholder
+- GPS: Continues to work (hardware-based, no internet required)
+- Weather/AQI: Not available offline
+
+### Supported Tile Providers
+
+The following map tile providers are cached for offline use:
+- OpenStreetMap (default)
+- CyclOSM
+- Thunderforest (if API key configured)
+- Tracestrack (if API key configured)
+
+To add additional tile providers, edit `public/sw.js`:
+
+```javascript
+// Line ~8
+const TILE_PATTERNS = [
+  /tile\.openstreetmap\.org/,
+  /tile-cyclosm\.openstreetmap\.fr/,
+  /your-tile-provider\.com/,  // Add new providers here
+];
+```
+
+### Clear Cache
+
+Users can clear all cached tiles via the "Clear All Offline Maps" button in the Offline Maps section of the sidebar. This will:
+1. Delete all cached map tiles
+2. Clear download status markers
+3. Reload the application
+4. Reinstall the service worker
+
+Developers can also clear cache programmatically:
+
+```javascript
+const clearOfflineCache = async () => {
+  const cacheNames = await caches.keys();
+  await Promise.all(cacheNames.map(name => caches.delete(name)));
+  window.location.reload();
+};
+```
+
+### Browser Compatibility
+
+**Service Worker Requirements**:
+- HTTPS connection (or localhost for development)
+- Modern browser with Service Worker support
+- Sufficient storage quota
+
+**Supported Browsers**:
+- Chrome/Edge 40+
+- Firefox 44+
+- Safari 11.1+
+- Chrome Mobile
+- Safari iOS 11.3+
+
+### Limitations
+
+**Does NOT work offline**:
+- 3D Cesium terrain view (tiles are 10-100x larger than 2D)
+- Weather data (requires API connection)
+- Air quality data (requires API connection)
+- Loading new tracks (unless already cached)
+- Areas not previously downloaded
+
+**3D Terrain Note**: 3D tiles are too large for practical offline use. A single trail area in 3D can require 5-30 GB of storage, which exceeds browser storage limits and is impractical for mobile devices. The app automatically disables 3D mode when offline.
+
+### Development
+
+**Local Testing**:
+```bash
+npm run dev
+# Service Worker works on localhost automatically
+# Open DevTools > Application > Service Workers to verify registration
+```
+
+**Production Deployment**:
+```bash
+npm run build
+# Service Worker will activate on HTTPS domain
+# GitHub Pages provides HTTPS by default
+```
+
+**Debug Service Worker**:
+1. Open DevTools > Application > Service Workers
+2. Check "Update on reload" during development
+3. Monitor cache in Application > Cache Storage
+4. View network requests in Network tab (filter by "ServiceWorker")
+
+
 
 ## License
 
