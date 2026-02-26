@@ -11,6 +11,8 @@ import useFullscreen from "./hooks/useFullscreen";
 import GpsButton from "./components/GpsButton";
 import { Maximize, Minimize } from 'lucide-react';
 
+import OfflineIndicator from './components/OfflineIndicator';
+
 // Max number of tracks in browser memory
 const MAX_CACHED_TRACKS = 4;
 
@@ -433,6 +435,9 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col lg:flex-row overflow-hidden bg-[var(--bg-primary)]">
+      {/* Offline indicator banner */}
+      <OfflineIndicator />
+
       <button
         onClick={() => setIsMenuOpen(true)}
         className="lg:hidden fixed top-4 left-4 z-[1001] p-3 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--accent-primary)] shadow-lg"
