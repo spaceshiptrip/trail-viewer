@@ -8,7 +8,10 @@ import {
   X,
   FileDown,
   Check,
+  CloudOff,
 } from "lucide-react";
+
+
 import BUILD_INFO from "../build-info";
 
 function gpxUrlForTrack(track) {
@@ -110,6 +113,11 @@ export default function TrackList({
     }
   };
 
+  const isTrackDownloaded = (track) => {
+    const trackId = track?.properties?.id || track?.properties?.filename;
+    return !!localStorage.getItem(`offline-track-${trackId}`);
+  };
+
   const handleCloseModal = () => {
     if (!downloadModal?.downloading) {
       setDownloadModal(null);
@@ -185,17 +193,28 @@ export default function TrackList({
             <div
               key={track.properties.id}
               onClick={() => onTrackSelect(track)}
-              className={`trail-card fade-in-up ${
-                selectedTrack?.properties.id === track.properties.id
-                  ? "border-[var(--accent-primary)] bg-[var(--bg-tertiary)]"
-                  : ""
-              }`}
+              className={`trail-card fade-in-up ${selectedTrack?.properties.id === track.properties.id
+                ? "border-[var(--accent-primary)] bg-[var(--bg-tertiary)]"
+                : ""
+                }`}
               style={{ animationDelay: `${idx * 0.05}s` }}
             >
               <div className="flex items-start justify-between gap-3">
-                <h3 className="font-display font-semibold text-lg mb-2 text-[var(--text-primary)]">
-                  {track.properties.name || `Track ${idx + 1}`}
-                </h3>
+
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-display font-semibold text-lg text-[var(--text-primary)]">
+                    {track.properties.name || `Track ${idx + 1}`}
+                  </h3>
+                  {isTrackDownloaded(track) && (
+                    <div
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 border border-green-500/30"
+                      title="Available offline"
+                    >
+                      <CloudOff className="w-3 h-3" />
+                      <span>Offline</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {track.properties.location && (

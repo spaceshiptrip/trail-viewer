@@ -41,6 +41,8 @@ import {
   gradeColorForPct,
 } from "../utils";
 
+import OfflineMapDownloader from './OfflineMapDownloader';
+
 function gpxUrlForTrack(track) {
   const file = track?.file;
   const name = track?.properties?.name;
@@ -127,11 +129,11 @@ export default function Sidebar({
       const center =
         track.geometry.type === "LineString"
           ? track.geometry.coordinates[
-              Math.floor(track.geometry.coordinates.length / 2)
-            ]
+          Math.floor(track.geometry.coordinates.length / 2)
+          ]
           : track.geometry.coordinates[0][
-              Math.floor(track.geometry.coordinates[0].length / 2)
-            ];
+          Math.floor(track.geometry.coordinates[0].length / 2)
+          ];
 
       fetchWeather(center[1], center[0])
         .then((data) => { setWeather(data); setLoadingWeather(false); })
@@ -269,15 +271,15 @@ export default function Sidebar({
   const handleToggleExpand = () => setIsGraphExpanded((v) => !v);
 
   const GRADE_BINS = useMemo(() => [
-    { key: "g25",  label: "≥ 25%",      min: 25,       max: Infinity, color: "#ff0000" },
-    { key: "g20",  label: "20–24.9%",   min: 20,       max: 25,       color: "#ff6600" },
-    { key: "g15",  label: "15–19.9%",   min: 15,       max: 20,       color: "#ff9900" },
-    { key: "g10",  label: "10–14.9%",   min: 10,       max: 15,       color: "#ffcc00" },
-    { key: "g5",   label: "5–9.9%",     min: 5,        max: 10,       color: "#ccff00" },
-    { key: "g0",   label: "0–4.9%",     min: 0,        max: 5,        color: "#00ff00" },
-    { key: "gm5",  label: "-5–-0.1%",   min: -5,       max: 0,        color: "#00ccff" },
-    { key: "gm10", label: "-10–-5.1%",  min: -10,      max: -5,       color: "#3399ff" },
-    { key: "gmInf",label: "< -10%",     min: -Infinity,max: -10,      color: "#6666ff" },
+    { key: "g25", label: "≥ 25%", min: 25, max: Infinity, color: "#ff0000" },
+    { key: "g20", label: "20–24.9%", min: 20, max: 25, color: "#ff6600" },
+    { key: "g15", label: "15–19.9%", min: 15, max: 20, color: "#ff9900" },
+    { key: "g10", label: "10–14.9%", min: 10, max: 15, color: "#ffcc00" },
+    { key: "g5", label: "5–9.9%", min: 5, max: 10, color: "#ccff00" },
+    { key: "g0", label: "0–4.9%", min: 0, max: 5, color: "#00ff00" },
+    { key: "gm5", label: "-5–-0.1%", min: -5, max: 0, color: "#00ccff" },
+    { key: "gm10", label: "-10–-5.1%", min: -10, max: -5, color: "#3399ff" },
+    { key: "gmInf", label: "< -10%", min: -Infinity, max: -10, color: "#6666ff" },
   ], []);
 
   const haversineMeters = (a, b) => {
@@ -557,7 +559,7 @@ export default function Sidebar({
                         <div className="relative" ref={gradeMenuRef}>
                           <button onClick={() => setGradeMenuOpen((v) => !v)} className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-1" title="Options" aria-label="Options">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <circle cx="12" cy="5"  r="1.5" fill="currentColor" />
+                              <circle cx="12" cy="5" r="1.5" fill="currentColor" />
                               <circle cx="12" cy="12" r="1.5" fill="currentColor" />
                               <circle cx="12" cy="19" r="1.5" fill="currentColor" />
                             </svg>
@@ -669,6 +671,9 @@ export default function Sidebar({
                     </p>
                   </div>
                 )}
+
+                {/* Offline Maps Download */}
+                <OfflineMapDownloader track={track} />
 
                 {/* Weather */}
                 <div className={`${snapState !== "full" ? "hidden lg:block" : ""}`}>
@@ -885,15 +890,15 @@ function ExpandedGraphOverlay({
             {/* Pan */}
             {isZoomed && (
               <>
-                <button onClick={onPanLeft}  className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-1.5" title="Pan left">  <ChevronLeft  className="w-5 h-5" /></button>
+                <button onClick={onPanLeft} className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-1.5" title="Pan left">  <ChevronLeft className="w-5 h-5" /></button>
                 <button onClick={onPanRight} className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors p-1.5" title="Pan right"> <ChevronRight className="w-5 h-5" /></button>
                 <div className="w-px h-5 bg-[var(--border-color)] mx-1" />
               </>
             )}
 
             {/* Zoom */}
-            <button onClick={onZoomOut}   disabled={!isZoomed} className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] p-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title="Zoom out">  <ZoomOut  className="w-5 h-5" /></button>
-            <button onClick={onZoomIn}                         className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] p-1.5 transition-colors"                                                  title="Zoom in">   <ZoomIn   className="w-5 h-5" /></button>
+            <button onClick={onZoomOut} disabled={!isZoomed} className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] p-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title="Zoom out">  <ZoomOut className="w-5 h-5" /></button>
+            <button onClick={onZoomIn} className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] p-1.5 transition-colors" title="Zoom in">   <ZoomIn className="w-5 h-5" /></button>
             <button onClick={onZoomReset} disabled={!isZoomed} className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] p-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title="Reset zoom"><Maximize2 className="w-5 h-5" /></button>
 
             <div className="w-px h-5 bg-[var(--border-color)] mx-1" />
@@ -906,7 +911,7 @@ function ExpandedGraphOverlay({
                 title="Options"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle cx="12" cy="5"  r="1.5" fill="currentColor" />
+                  <circle cx="12" cy="5" r="1.5" fill="currentColor" />
                   <circle cx="12" cy="12" r="1.5" fill="currentColor" />
                   <circle cx="12" cy="19" r="1.5" fill="currentColor" />
                 </svg>
