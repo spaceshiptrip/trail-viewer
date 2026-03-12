@@ -1,8 +1,9 @@
 {
   "type": "Feature",
   "properties": {
-    "name": "Athenaeum 9",
-    "description": ""
+    "name": "Home to Athenaeum 9",
+    "description": "Home to JPL to RB to Pasadena to Ath",
+    "location": "Pasadena, CA"
   },
   "geometry": {
     "type": "LineString",

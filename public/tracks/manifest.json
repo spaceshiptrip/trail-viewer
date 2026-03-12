@@ -34,9 +34,9 @@
     },
     {
       "file": "Home2Athenaeum-OSM_Data-9.geojson",
-      "name": "Athenaeum 9",
-      "location": "",
-      "description": "",
+      "name": "Home to Athenaeum 9",
+      "location": "Pasadena, CA",
+      "description": "Home to JPL to RB to Pasadena to Ath",
       "distance": 9.27,
       "elevationGain": 204
     },
