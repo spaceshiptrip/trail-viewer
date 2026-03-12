@@ -159,6 +159,14 @@
       "description": "Wide Fireroad route up the Verdugos.  Hits the peaks Verdugo Peak (~3,126 ft) — Verdugos tallest point, Tongva Peak (~2,656 ft), Mount Thom (~2440 ft).",
       "distance": 12.27,
       "elevationGain": 1834
+    },
+    {
+      "file": "cactus-to-clouds-hike-1.geojson",
+      "name": "Cactus to Clouds (C2C)",
+      "location": "Mount San Jacinto State Park, CA",
+      "description": "The Cactus to Clouds hike is epic. Backpacker Magazine rated it one of the hardest day hikes in the world. You start in downtown Palm Springs and climb over 10,000 feet to the summit of Mt San Jacinto, with a large stretch on the Skyline Trail.",
+      "distance": 19.68,
+      "elevationGain": 0
     }
   ]
 }
