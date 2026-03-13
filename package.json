@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "test": "node --test",
+    "validate-gpx": "node scripts/validate-gpx.cjs",
     "add-track": "node scripts/add-track.cjs",
     "prebuild": "npm test && node scripts/generate-build-info.js",
     "build": "vite build",
