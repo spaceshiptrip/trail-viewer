@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node --test",
+    "add-track": "node scripts/add-track.cjs",
+    "prebuild": "npm test && node scripts/generate-build-info.js",
     "build": "vite build",
-    "prebuild": "node scripts/generate-build-info.js",
     "preview": "vite preview"
   },
   "dependencies": {
