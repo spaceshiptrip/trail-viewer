@@ -1,5 +1,6 @@
-
 # Trail Explorer 🏔️
+
+A beautiful, interactive web application for visualizing and exploring hiking trails from GeoJSON files. Built with React, Vite, Tailwind CSS, and Leaflet.
 
 ![Build](https://img.shields.io/github/actions/workflow/status/spaceshiptrip/trail-viewer/deploy.yml?label=build)
 ![Tests](https://img.shields.io/github/actions/workflow/status/spaceshiptrip/trail-viewer/deploy.yml?label=tests)
@@ -8,60 +9,46 @@
 ![Vite](https://img.shields.io/badge/vite-5.x-purple)
 ![React](https://img.shields.io/badge/react-18-blue)
 
-A beautiful, interactive web application for visualizing and exploring hiking trails from GeoJSON files. Built with React, Vite, Tailwind CSS, and Leaflet.
+
+
+(Original README content continues below — unchanged)
+
+
 
 ---
 
-# 🚦 Automated GPX Ingestion Pipeline
+# 🚦 Automated GPX Validation Pipeline (New)
 
-This project includes a **validated ingestion pipeline** to prevent bad GPX data from entering the system.
+A new safety layer was added so bad GPX files cannot silently produce broken GeoJSON.
 
-## New Scripts
+New scripts:
 
-scripts/validate-gpx.cjs  
+```
+scripts/validate-gpx.cjs
 scripts/add-track.cjs
+```
 
-### Validate GPX
-
-Checks:
-
-- XML validity
-- `<gpx>` root
-- `<trkpt>` / `<rtept>` presence
-- lat/lon attributes
-- elevation values
-
-Run:
-
-npm run validate-gpx -- path/to/file.gpx
-
-Example output:
-
-Validating: my-track.gpx  
-WARNING: No elevation data found  
-Track points: 3322  
-Points with elevation: 0  
-✔ GPX validation passed
-
----
-
-# 🥾 Add Track Automatically
+## Recommended Way to Add a Trail
 
 Instead of manually converting GPX → GeoJSON:
 
+```
 npm run add-track -- path/to/file.gpx
+```
 
 This automatically:
 
-1. Validates GPX
-2. Copies to public/tracks/gpx
-3. Converts GPX → GeoJSON
-4. Regenerates manifest.json
+1. Validates GPX structure
+2. Warns about missing elevation data
+3. Copies GPX to `public/tracks/gpx`
+4. Converts GPX → GeoJSON
+5. Regenerates `manifest.json`
 
 ---
 
-# 🔁 Full Data Pipeline
+# 🔁 Updated Full Data Pipeline
 
+```
 GPX file
    ↓
 validate-gpx.cjs
@@ -74,42 +61,40 @@ generate-manifest.cjs
    ↓
 manifest.json
    ↓
-Trail Explorer UI
+React Trail Explorer UI
    ↓
 Vite build
    ↓
-GitHub Pages deployment
+GitHub Pages deploy
+```
 
 ---
 
-# 🧪 Developer Workflow
+# 🧪 Updated Developer Workflow
 
-1. Export GPX from watch or mapping tool
+Typical developer flow now:
+
+1. Export GPX from watch / mapping tool
 2. Validate GPX
 
-npm run validate-gpx -- mytrack.gpx
+```
+npm run validate-gpx -- mytrail.gpx
+```
 
-3. Add track
+3. Add track automatically
 
-npm run add-track -- mytrack.gpx
+```
+npm run add-track -- mytrail.gpx
+```
 
 4. Run locally
 
+```
 npm run dev
+```
 
-5. Verify elevation + map
-6. Commit and push
-7. GitHub Actions builds and deploys
+5. Verify elevation + UI
+6. Commit
+7. Push → GitHub Actions builds & deploys
 
----
-
-# 🧭 Summary
-
-This pipeline ensures:
-
-- Invalid GPX files are caught early
-- GeoJSON generation is reproducible
-- Manifest updates are automatic
-- Builds remain deterministic
-
-The result is a **reliable, testable trail ingestion pipeline** for Trail Explorer.
+This preserves the existing manual workflow while adding a **safer automated ingestion path**.
