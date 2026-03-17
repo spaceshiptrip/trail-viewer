@@ -13,6 +13,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import DrawTrailMode from "./DrawTrailMode";
+import WeatherLayer from "./WeatherLayer";
 import "leaflet/dist/leaflet.css";
 
 // Fix for default marker icons in Leaflet
@@ -170,22 +171,15 @@ function FitBounds({
       lastCollapseState.sidebar !== isSidebarCollapsed ||
       lastCollapseState.trackList !== trackListCollapsed;
 
-    // Recenter if:
-    // 1. First load (!hasInitialized)
-    // 2. Track changed (currentTrackId !== lastTrackId)
-    // 3. Collapse state changed (sidebar or tracklist collapsed/expanded)
     const shouldRecenter =
       !hasInitialized || currentTrackId !== lastTrackId || collapseStateChanged;
 
     if (!shouldRecenter) return;
 
-    // CRITICAL: Wait for CSS transitions to complete (300ms from CSS)
-    // This ensures sidebars are fully opened/closed before recentering
     const recenterDelay = collapseStateChanged ? 350 : 0;
 
     const recenterTimer = setTimeout(() => {
       if (selectedTrack) {
-        // Fit to selected track only
         const coords =
           selectedTrack.geometry.type === "LineString"
             ? selectedTrack.geometry.coordinates.map((coord) => [
@@ -199,7 +193,6 @@ function FitBounds({
 
         const trackBounds = L.latLngBounds(coords);
 
-        // Calculate center of mass (geometric centroid) for better centering
         let sumLat = 0;
         let sumLng = 0;
         coords.forEach((coord) => {
@@ -211,48 +204,33 @@ function FitBounds({
           sumLng / coords.length,
         );
 
-        // IMPROVED LOGIC: Calculate responsive padding based on ALL panel states
         const isMobile = window.innerWidth < 1024;
-
-        // Left padding: TrackList (desktop only, unless collapsed)
         const paddingLeft = !isMobile && !trackListCollapsed ? 450 : 50;
-
-        // Right padding: Sidebar (desktop only, unless collapsed)
         const paddingRight =
           !isMobile && sidebarOpen && !isSidebarCollapsed ? 450 : 50;
-
-        // Bottom padding: Mobile bottom sheet
         const paddingBottom = isMobile && sidebarOpen ? 300 : 50;
 
-        // Calculate the viewport center offset to account for asymmetric padding
         const viewportWidth = map.getSize().x;
         const viewportHeight = map.getSize().y;
-
-        // Available map space (after subtracting sidebars)
         const availableWidth = viewportWidth - paddingLeft - paddingRight;
         const availableHeight = viewportHeight - 50 - paddingBottom;
 
-        // Calculate the pixel offset needed to center in the available space
         const offsetX = (paddingLeft - paddingRight) / 2;
         const offsetY = (50 - paddingBottom) / 2;
 
-        // Convert pixel offset to map coordinates
         const mapCenter = map.getCenter();
         const point = map.project(mapCenter, map.getZoom());
         point.x += offsetX;
         point.y += offsetY;
         const adjustedCenter = map.unproject(point, map.getZoom());
 
-        // First fit to bounds to get appropriate zoom level
         map.fitBounds(trackBounds, {
           paddingTopLeft: [paddingLeft, 50],
           paddingBottomRight: [paddingRight, paddingBottom],
           maxZoom: 14,
-          animate: collapseStateChanged, // Animate only when sidebars change
+          animate: collapseStateChanged,
         });
 
-        // Then adjust center to center of mass with offset compensation
-        // Use a small delay to let fitBounds complete first
         setTimeout(
           () => {
             const currentZoom = map.getZoom();
@@ -269,7 +247,6 @@ function FitBounds({
           collapseStateChanged ? 100 : 0,
         );
       } else if (bounds && bounds.length > 0) {
-        // Fit to all tracks with symmetric padding
         const isMobile = window.innerWidth < 1024;
         const paddingLeft = !isMobile && !trackListCollapsed ? 450 : 50;
 
@@ -348,7 +325,7 @@ export default function Map(props = {}) {
 
     const markers = [];
     let totalDistance = 0;
-    let nextMarkerDistance = 1; // First marker at 1 mile
+    let nextMarkerDistance = 1;
 
     markers.push({
       position: [coords[0][1], coords[0][0]],
@@ -365,7 +342,6 @@ export default function Map(props = {}) {
       totalDistance += dist;
 
       while (totalDistance >= nextMarkerDistance) {
-        // Interpolate position for this mile marker
         const excess = totalDistance - nextMarkerDistance;
         const segmentDist = dist;
         const ratio = 1 - excess / segmentDist;
@@ -423,7 +399,6 @@ export default function Map(props = {}) {
       const handleMouseMove = (e) => {
         const clickedPoint = [e.latlng.lat, e.latlng.lng];
 
-        // Find closest point on track
         let minDist = Infinity;
         let closestIndex = 0;
 
@@ -440,7 +415,6 @@ export default function Map(props = {}) {
           }
         }
 
-        // Only trigger if within 0.1 miles of track
         if (minDist < 0.1) {
           onMapHover(closestIndex);
         }
@@ -460,7 +434,6 @@ export default function Map(props = {}) {
   const getAllBounds = () => {
     if (!tracks || tracks.length === 0) return null;
 
-    // SAFETY: Filter out any tracks without geometry (stubs)
     const validTracks = tracks.filter(
       (track) => track.geometry && track.geometry.coordinates,
     );
@@ -484,12 +457,10 @@ export default function Map(props = {}) {
   };
 
   const bounds = getAllBounds();
-  const center = bounds ? bounds.getCenter() : [34.1478, -118.1445]; // Default to LA area
+  const center = bounds ? bounds.getCenter() : [34.1478, -118.1445];
 
-  // properties for the selected line
   const SELECTED_TRACK_LINE_COLOR = "#5ab887";
   const SELECTED_TRACK_OUTLINE_COLOR = "#ffffff";
-
   const SELECTED_LINE_WEIGHT = 5;
   const SELECTED_OUTLINE_WEIGHT = 8;
 
@@ -514,12 +485,10 @@ export default function Map(props = {}) {
     className: "selected-track-core",
   });
 
-  // Style for non-selected tracks
   const getTrackStyle = (feature) => {
     const isSelected =
       selectedTrack && feature.properties.id === selectedTrack.properties.id;
 
-    // For the selected track, we won't use this style (we render it separately)
     if (isSelected) return { opacity: 0, weight: 0 };
 
     return {
@@ -531,7 +500,6 @@ export default function Map(props = {}) {
     };
   };
 
-  // Handle track interactions
   const onEachFeature = (feature, layer) => {
     layer.on({
       click: () => onTrackClick(feature),
@@ -553,7 +521,6 @@ export default function Map(props = {}) {
       },
     });
 
-    // Add popup
     if (feature.properties && feature.properties.name) {
       layer.bindPopup(`
         <div class="font-display font-bold text-lg mb-1">${feature.properties.name}</div>
@@ -571,6 +538,7 @@ export default function Map(props = {}) {
         ref={mapRef}
       >
         <LayersControl position="topright">
+          {/* ── Base Layers ── */}
           <LayersControl.BaseLayer checked name="OSM Standard">
             <TileLayer
               attribution="© OpenStreetMap contributors"
@@ -587,7 +555,6 @@ export default function Map(props = {}) {
             />
           </LayersControl.BaseLayer>
 
-          {/* Cycle Map (Thunderforest) — only show if key is present */}
           {THUNDERFOREST_KEY && (
             <LayersControl.BaseLayer name="Cycle Map (Thunderforest)">
               <TileLayer
@@ -600,7 +567,6 @@ export default function Map(props = {}) {
             </LayersControl.BaseLayer>
           )}
 
-          {/* Tracestrack Topo — only show if key is present */}
           {TRACESTRACK_KEY && (
             <LayersControl.BaseLayer name="Tracestrack Topo">
               <TileLayer
@@ -614,7 +580,10 @@ export default function Map(props = {}) {
           )}
         </LayersControl>
 
-        {/* GPS Location Layer - ADD THIS */}
+        {/* Custom weather canvas overlay — free, no API key needed */}
+        <WeatherLayer />
+
+        {/* GPS Location Layer */}
         <UserLocationLayer
           position={userPosition}
           status={userStatus}
@@ -623,7 +592,7 @@ export default function Map(props = {}) {
 
         {/* Non-selected tracks */}
         {tracks
-          .filter((t) => t.geometry && t.geometry.coordinates) // SAFETY: Skip stubs
+          .filter((t) => t.geometry && t.geometry.coordinates)
           .filter(
             (t) =>
               !selectedTrack || t.properties.id !== selectedTrack.properties.id,
@@ -637,7 +606,7 @@ export default function Map(props = {}) {
             />
           ))}
 
-        {/* Selected track: white outline + green core (drawn on top) */}
+        {/* Selected track: white outline + green core */}
         {selectedTrack && selectedTrack.geometry && (
           <>
             <GeoJSON
@@ -655,9 +624,9 @@ export default function Map(props = {}) {
           </>
         )}
 
-        {/* Mile Markers (numbered) */}
+        {/* Mile Markers */}
         {mileMarkers
-          .filter((m) => m.distance > 0) // skip 0; you already have a Start marker
+          .filter((m) => m.distance > 0)
           .map((marker) => (
             <Marker
               key={`mile-${marker.distance}`}
@@ -705,7 +674,7 @@ export default function Map(props = {}) {
         {/* Map Event Handler */}
         <MapEventHandler />
 
-        {/* FitBounds with all required props */}
+        {/* FitBounds */}
         {bounds && (
           <FitBounds
             bounds={bounds}
