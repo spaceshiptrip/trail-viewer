@@ -581,7 +581,7 @@ export default function Map(props = {}) {
         </LayersControl>
 
         {/* Custom weather canvas overlay — free, no API key needed */}
-        <WeatherLayer />
+        <WeatherLayer selectedTrack={selectedTrack} />
 
         {/* GPS Location Layer */}
         <UserLocationLayer
