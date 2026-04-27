@@ -73,6 +73,14 @@
       "elevationGain": 3240
     },
     {
+      "file": "LaVerne2SanDimasFireStation-12.geojson",
+      "name": "La Verne to San Dimas Fire Station Out and Back 12",
+      "location": "La Verne, CA",
+      "description": "100% Road uphill to San Dimast Fire Station.  Distance (mi): 12, ",
+      "distance": 12,
+      "elevationGain": 2625
+    },
+    {
       "file": "LaVerne2SanDimasFireStation-8.geojson",
       "name": "La Verne to San Dimas Fire Station - Hills 8",
       "location": "La Verne, CA",
@@ -167,6 +175,14 @@
       "description": "Wide Fireroad route up the Verdugos.  Hits the peaks Verdugo Peak (~3,126 ft) — Verdugos tallest point, Tongva Peak (~2,656 ft), Mount Thom (~2440 ft).",
       "distance": 12.27,
       "elevationGain": 1834
+    },
+    {
+      "file": "chaneytowilsonbigloop23.geojson",
+      "name": "Chaney to Wilson Big Loop 23",
+      "location": "",
+      "description": "",
+      "distance": 22.61,
+      "elevationGain": 10725
     },
     {
       "file": "snow-valley-trails.geojson",
