@@ -33,6 +33,14 @@
       "elevationGain": 10352
     },
     {
+      "file": "Chantry2Wilson2JPL-21.geojson",
+      "name": "Chantry2Wilson2JPL-21",
+      "location": "",
+      "description": "",
+      "distance": 21.06,
+      "elevationGain": 5870
+    },
+    {
       "file": "Home2Athenaeum-OSM_Data-9.geojson",
       "name": "Home to Athenaeum 9",
       "location": "Pasadena, CA",
