@@ -9,12 +9,22 @@ import useGeolocation from "./hooks/useGeolocation";
 import useFullscreen from "./hooks/useFullscreen";
 
 import GpsButton from "./components/GpsButton";
-import { Maximize, Minimize } from 'lucide-react';
+import { Maximize, Minimize, X } from 'lucide-react';
 
 import OfflineIndicator from './components/OfflineIndicator';
 
 // Max number of tracks in browser memory
 const MAX_CACHED_TRACKS = 4;
+
+function getRequestedTrackFilename() {
+  if (typeof window === "undefined") return null;
+
+  const queryTrack = new URLSearchParams(window.location.search).get("track");
+  if (queryTrack) return queryTrack;
+
+  const hash = window.location.hash.replace(/^#/, "");
+  return new URLSearchParams(hash).get("track");
+}
 
 function App() {
   // All state hooks MUST be at the top, in the same order, every render
@@ -34,6 +44,7 @@ function App() {
   const [theme, setTheme] = useState(
     () => localStorage.getItem("theme") || "dark",
   );
+  const [deepLinkNotice, setDeepLinkNotice] = useState("");
   const [trackCache, setTrackCache] = useState({}); // Use plain object instead of Map
   const [trackCacheOrder, setTrackCacheOrder] = useState([]); // array of filenames, most-recent at end
 
@@ -212,6 +223,28 @@ function App() {
       }));
 
       setTracks(trackStubs);
+
+      const requestedTrack = getRequestedTrackFilename();
+      if (requestedTrack) {
+        const matchingTrack = trackStubs.find(
+          (track) => track.properties.file === requestedTrack,
+        );
+
+        if (matchingTrack) {
+          const fullTrack = await loadTrackGeoJSON(matchingTrack);
+          if (fullTrack) {
+            setSelectedTrack(fullTrack);
+            setIsSidebarCollapsed(false);
+          } else {
+            setDeepLinkNotice(
+              `Shared trail could not be loaded: ${requestedTrack}`,
+            );
+          }
+        } else {
+          setDeepLinkNotice(`Shared trail was not found: ${requestedTrack}`);
+        }
+      }
+
       setLoading(false);
     } catch (error) {
       console.error("Error loading manifest:", error);
@@ -437,6 +470,22 @@ function App() {
     <div className="h-screen w-screen flex flex-col lg:flex-row overflow-hidden bg-[var(--bg-primary)]">
       {/* Offline indicator banner */}
       <OfflineIndicator />
+
+      {deepLinkNotice && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[1010] max-w-[calc(100vw-2rem)] rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 text-sm text-[var(--text-primary)] shadow-lg">
+          <div className="flex items-center gap-3">
+            <span>{deepLinkNotice}</span>
+            <button
+              type="button"
+              onClick={() => setDeepLinkNotice("")}
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              aria-label="Dismiss shared trail notice"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <button
         onClick={() => setIsMenuOpen(true)}
