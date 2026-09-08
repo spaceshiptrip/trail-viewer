@@ -33,6 +33,37 @@ Add GPX -> validate -> convert to GeoJSON -> regenerate manifest -> commit/push 
 GitHub Actions currently builds and deploys the app after push. It does not yet
 perform GPX conversion or commit generated GeoJSON/manifest files automatically.
 
+## Next Step: Web UI Upload Workflow
+
+The next implementation step is to make the normal user workflow happen inside
+the deployed web UI:
+
+```text
+Drag GPX into app -> validate -> convert -> update in-memory track list -> select/show track -> save through GitHub PR -> GitHub Actions verifies/builds/deploys
+```
+
+Target end state:
+
+- The user drags a `.gpx` file onto the app.
+- The browser validates the file before anything is saved.
+- The browser converts the GPX to GeoJSON.
+- The browser calculates distance and elevation gain.
+- The new track appears in the menu immediately as a local preview.
+- The new track is selected and displayed on the map when processing finishes.
+- The UI clearly marks the track as local preview until it is saved.
+- The user can save the processed GPX, GeoJSON, and updated manifest through a GitHub pull request.
+- After the PR is merged and GitHub Actions deploys, the track behaves like every other deployed track.
+
+GitHub Actions should be used as the backstop for this workflow:
+
+- Run tests and production build on every push.
+- Verify generated track artifacts are consistent with the source GPX and manifest.
+- Fail the workflow if a GPX, GeoJSON, or manifest update is missing or stale.
+
+GitHub Actions should not be the primary UI for adding tracks. The user-facing
+workflow should stay in the browser app; Actions should verify, build, and
+deploy the result.
+
 ## What We Discussed
 
 The app is currently static and deployed from GitHub via `.github/workflows/deploy.yml`. It builds with Vite and publishes `dist` to GitHub Pages.
