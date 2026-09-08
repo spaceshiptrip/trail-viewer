@@ -5,6 +5,34 @@
 **Deployment model:** Static GitHub Pages site deployed by GitHub Actions  
 **Primary user case:** As the repo owner, I want to drag and drop a new GPX file into the deployed app, preview it immediately, convert it to GeoJSON, and save it back into the app's normal static track pipeline by opening a GitHub pull request.
 
+## Current Implementation Status
+
+This document started as a plan. The following pieces are now implemented:
+
+- Static deployed tracks load from `public/tracks/manifest.json`.
+- Selecting a track fetches the matching GeoJSON from `public/tracks/`.
+- GPX downloads are served from `public/tracks/gpx/`.
+- Share links use `?track=<encoded-geojson-filename>`.
+- Opening a URL with a valid `track` query parameter automatically loads and selects that trail.
+- Opening a URL with `#track=<encoded-geojson-filename>` is also supported as a fallback.
+- Missing or stale shared-track URLs do not break the app; they show a non-blocking notice.
+
+The following pieces are still planned, not implemented:
+
+- Drag-and-drop GPX upload in the deployed browser app.
+- Browser-side conversion and preview for newly uploaded GPX files.
+- Browser-created GitHub pull requests for uploaded tracks.
+- Browser history synchronization when manually selecting or closing tracks.
+
+The current production workflow for adding tracks is still repo-based:
+
+```text
+Add GPX -> validate -> convert to GeoJSON -> regenerate manifest -> commit/push -> GitHub Actions deploy
+```
+
+GitHub Actions currently builds and deploys the app after push. It does not yet
+perform GPX conversion or commit generated GeoJSON/manifest files automatically.
+
 ## What We Discussed
 
 The app is currently static and deployed from GitHub via `.github/workflows/deploy.yml`. It builds with Vite and publishes `dist` to GitHub Pages.
