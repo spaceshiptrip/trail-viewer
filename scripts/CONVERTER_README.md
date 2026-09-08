@@ -93,31 +93,73 @@ Coordinates are in `[longitude, latitude, elevation_in_meters]` format.
 
 1. **Export GPX from your GPS device or app** (Strava, Garmin, AllTrails, etc.)
 
-2. **Convert to GeoJSON:**
-   ```bash
-   # Put all your GPX files in one folder
-   mkdir my-tracks
-   # Copy your GPX files there
-   
-   # Convert them all at once
-   python gpx_to_geojson.py my-tracks trail-viewer/public/tracks
-   ```
+2. **Add the GPX to Trail Explorer.**
 
-3. **Add to Trail Explorer:**
-   ```javascript
-   // In trail-viewer/src/App.jsx
-   const trackFiles = [
-     'track1.geojson',
-     'track2.geojson',
-     'track3.geojson',
-   ];
-   ```
+   If the GPX is outside this repo, use the helper script:
 
-4. **Run your app:**
    ```bash
    cd trail-viewer
+   npm run add-track -- /path/to/file.gpx
+   ```
+
+   This validates the GPX, copies it into `public/tracks/gpx/`, converts it to
+   GeoJSON in `public/tracks/`, and regenerates `public/tracks/manifest.json`.
+
+   If the GPX is already in `public/tracks/gpx/`, preserve its filename with the
+   lower-level workflow:
+
+   ```bash
+   node scripts/validate-gpx.cjs public/tracks/gpx/YourTrail.gpx
+   node scripts/gpx-to-geojson.cjs public/tracks/gpx/YourTrail.gpx public/tracks
+   node scripts/generate-manifest.cjs
+   ```
+
+3. **Run your app:**
+   ```bash
    npm run dev
    ```
+
+4. **Commit and push the generated files:**
+   ```bash
+   git add public/tracks/gpx/YourTrail.gpx public/tracks/YourTrail.geojson public/tracks/manifest.json
+   git commit -m "Add YourTrail"
+   git push origin main
+   ```
+
+   Pushing to `main` lets GitHub Actions build and deploy the updated static
+   GitHub Pages app.
+
+### Deprecated Legacy Workflow
+
+Older docs recommended converting GPX files separately and then editing
+`src/App.jsx`:
+
+```bash
+# Put all your GPX files in one folder
+mkdir my-tracks
+# Copy your GPX files there
+
+# Convert them all at once
+python gpx_to_geojson.py my-tracks trail-viewer/public/tracks
+```
+
+Then manually add files:
+
+```javascript
+// In trail-viewer/src/App.jsx
+const trackFiles = [
+  'track1.geojson',
+  'track2.geojson',
+  'track3.geojson',
+];
+```
+
+This path is deprecated. It was replaced by `public/tracks/manifest.json`, which
+is regenerated with:
+
+```bash
+node scripts/generate-manifest.cjs
+```
 
 ---
 

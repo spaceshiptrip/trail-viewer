@@ -49,28 +49,51 @@ npm install
 
 ### 3. Add Your Trail Data
 
-#### Option A: Using Manifest (Recommended)
+#### Option A: Add a GPX with the helper script (Recommended)
 
-Create `public/tracks/manifest.json`:
+If the GPX file is outside this repo, run:
 
-```json
-{
-  "tracks": [
-    {
-      "file": "sample-trail.geojson",
-      "name": "Sample Trail",
-      "location": "California, USA",
-      "description": "A beautiful hiking trail",
-      "distance": 5.2,
-      "elevationGain": 1200
-    }
-  ]
-}
+```bash
+npm run add-track -- /path/to/file.gpx
 ```
 
-Add your GeoJSON files to `public/tracks/` and corresponding GPX files to `public/tracks/gpx/`.
+This validates the GPX, copies it into `public/tracks/gpx/`, converts it to
+`public/tracks/<same-name>.geojson`, and regenerates
+`public/tracks/manifest.json`.
 
-#### Option B: Legacy Method
+#### Option B: GPX already copied into `public/tracks/gpx/`
+
+If you already placed the GPX file in `public/tracks/gpx/`, use the lower-level
+commands so the original filename is preserved:
+
+```bash
+node scripts/validate-gpx.cjs public/tracks/gpx/YourTrail.gpx
+node scripts/gpx-to-geojson.cjs public/tracks/gpx/YourTrail.gpx public/tracks
+node scripts/generate-manifest.cjs
+```
+
+The app loads tracks from `public/tracks/manifest.json`. Each manifest entry
+points to a GeoJSON file in `public/tracks/`. GPX downloads are inferred by
+replacing `.geojson` with `.gpx`, so keep matching basenames:
+
+```text
+public/tracks/YourTrail.geojson
+public/tracks/gpx/YourTrail.gpx
+```
+
+#### Deprecated: Manual Manifest Editing
+
+You can still hand-edit `public/tracks/manifest.json`, but this is deprecated.
+It was replaced by:
+
+```bash
+node scripts/generate-manifest.cjs
+```
+
+The generator scans `public/tracks/*.geojson` and calculates distance and
+elevation gain automatically.
+
+#### Deprecated: Legacy `src/App.jsx` Track List
 
 Place your GeoJSON trail files in `public/tracks/` and edit `src/App.jsx`:
 
@@ -81,6 +104,9 @@ const trackFiles = [
   'your-trail-2.geojson',
 ];
 ```
+
+This is kept only as the fallback path if `public/tracks/manifest.json` fails to
+load. The normal workflow is to regenerate `manifest.json`.
 
 ### 4. Run Development Server
 
@@ -883,4 +909,3 @@ This automatically:
 3. Copies GPX to `public/tracks/gpx`
 4. Converts GPX → GeoJSON
 5. Regenerates `manifest.json`
-
