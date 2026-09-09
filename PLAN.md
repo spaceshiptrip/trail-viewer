@@ -64,38 +64,6 @@ GitHub Actions should not be the primary UI for adding tracks. The user-facing
 workflow should stay in the browser app; Actions should verify, build, and
 deploy the result.
 
-## Follow-Up Priority: Offline Tile Storage Hardening
-
-After the web UI GPX upload workflow is complete, improve offline map storage
-for mobile use, especially iPhone.
-
-Reasoning:
-
-- `localStorage` is too small for map tiles. It is generally limited to about
-  5 MiB per origin and should only be used for small flags or settings.
-- IndexedDB and Cache API use the browser's larger quota-managed storage pool.
-- On modern Safari and iOS WebKit, quota-managed storage can be much larger than
-  `localStorage`, but it is still subject to device storage pressure and
-  browser eviction.
-- The app already stores tile responses in the Service Worker Cache API.
-  `localStorage` is currently used only for small `offline-track-*` markers.
-
-Planned work:
-
-- Audit the existing offline tile implementation in `public/sw.js` and
-  `src/components/OfflineMapDownloader.jsx`.
-- Keep tile bytes in Cache API unless IndexedDB provides a concrete advantage
-  for indexing, metadata, progress recovery, or explicit per-trail management.
-- Move offline trail metadata out of `localStorage` if it grows beyond simple
-  markers.
-- Use `navigator.storage.estimate()` to show realistic used/quota information.
-- Request persistent storage with `navigator.storage.persist()` where supported,
-  while handling denial gracefully.
-- Add per-trail cache accounting so users can see and remove one downloaded
-  trail without clearing every offline map.
-- Treat this as lower priority if testing shows Cache API storage is already
-  sufficient for iPhone offline trail downloads.
-
 ## What We Discussed
 
 The app is currently static and deployed from GitHub via `.github/workflows/deploy.yml`. It builds with Vite and publishes `dist` to GitHub Pages.
